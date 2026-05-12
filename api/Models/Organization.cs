@@ -1,0 +1,13 @@
+namespace CouncilAgendaApi.Models;
+
+public class Organization
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string OrganizationType { get; set; } = string.Empty;
+    public bool ConductingRotates { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public ICollection<UserOrganization> UserOrganizations { get; set; } = new List<UserOrganization>();
+    public ICollection<Meeting> Meetings { get; set; } = new List<Meeting>();
+    public ICollection<Member> Members { get; set; } = new List<Member>();
+}
