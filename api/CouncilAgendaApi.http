@@ -1,0 +1,6 @@
+@CouncilAgendaApi_HostAddress = http://localhost:5162
+
+GET {{CouncilAgendaApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
