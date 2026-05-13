@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Authorization;
 using Asp.Versioning;
+using Asp.Versioning.ApiExplorer;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,14 +44,28 @@ builder.Services.AddSwaggerGen(options =>
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.Authority = $"https://clerk.{builder.Configuration["Clerk:Domain"]}";
+        options.Authority = $"https://{builder.Configuration["Clerk:Domain"]}";
         options.TokenValidationParameters = new()
         {
-            ValidateAudience = false
+            ValidateAudience = false,
+            ValidateIssuer = true,
+            ValidIssuer = $"https://{builder.Configuration["Clerk:Domain"]}"
+        };
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context =>
+            {
+                Console.WriteLine($"Auth failed: {context.Exception.Message}");
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context =>
+            {
+                Console.WriteLine("Token validated successfully");
+                return Task.CompletedTask;
+            }
         };
     });
 
@@ -82,7 +98,22 @@ builder.Services.AddApiVersioning(options =>
     options.DefaultApiVersion = new ApiVersion(1);
     options.AssumeDefaultVersionWhenUnspecified = true;
     options.ReportApiVersions = true;
-}).AddMvc();
+}).AddMvc()
+  .AddApiExplorer(options =>
+  {
+      options.GroupNameFormat = "'v'VVV";
+      options.SubstituteApiVersionInUrl = true;
+  });
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowClient", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 
 var app = builder.Build();
 
@@ -92,10 +123,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseExceptionHandler();
+app.UseCors("AllowClient");
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.UseExceptionHandler();
 
 app.Run();

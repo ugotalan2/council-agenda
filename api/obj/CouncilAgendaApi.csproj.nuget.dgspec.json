@@ -47,6 +47,10 @@
               "target": "Package",
               "version": "[8.1.0, )"
             },
+            "Asp.Versioning.Mvc.ApiExplorer": {
+              "target": "Package",
+              "version": "[8.1.0, )"
+            },
             "Azure.AI.OpenAI": {
               "target": "Package",
               "version": "[1.0.0-beta.17, )"

@@ -246,7 +246,7 @@ namespace CouncilAgendaApi.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("OrganizationType")
+                    b.Property<string>("OrgType")
                         .IsRequired()
                         .HasColumnType("text");
 

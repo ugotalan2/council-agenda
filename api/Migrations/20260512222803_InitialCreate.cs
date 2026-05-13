@@ -31,7 +31,7 @@ namespace CouncilAgendaApi.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false, defaultValueSql: "gen_random_uuid()"),
                     Name = table.Column<string>(type: "text", nullable: false),
-                    OrganizationType = table.Column<string>(type: "text", nullable: false),
+                    OrgType = table.Column<string>(type: "text", nullable: false),
                     ConductingRotates = table.Column<bool>(type: "boolean", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
                 },

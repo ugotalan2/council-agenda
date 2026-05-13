@@ -23,7 +23,7 @@ public class OrganizationService : IOrganizationService
             .Select(uo => new OrganizationResponse(
                 uo.Organization.Id,
                 uo.Organization.Name,
-                uo.Organization.OrganizationType,
+                uo.Organization.OrgType,
                 uo.Organization.ConductingRotates,
                 uo.Role
             ))
@@ -35,16 +35,17 @@ public class OrganizationService : IOrganizationService
         var org = new Organization
         {
             Name = request.Name,
-            OrganizationType = request.OrganizationType,
+            OrgType = request.OrgType,
             ConductingRotates = request.ConductingRotates
         };
 
         _db.Organizations.Add(org);
+        await _db.SaveChangesAsync(); // save org first to get the Id
 
         _db.UserOrganizations.Add(new UserOrganization
         {
             ClerkUserId = clerkUserId,
-            OrganizationId = org.Id,
+            OrganizationId = org.Id, // now org.Id is populated
             Role = "admin"
         });
 
@@ -53,7 +54,7 @@ public class OrganizationService : IOrganizationService
         return new OrganizationResponse(
             org.Id,
             org.Name,
-            org.OrganizationType,
+            org.OrgType,
             org.ConductingRotates,
             "admin"
         );

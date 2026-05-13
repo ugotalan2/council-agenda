@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using CouncilAgendaApi.Constants;
 using CouncilAgendaApi.Data;
 using CouncilAgendaApi.DTOs;
 using CouncilAgendaApi.Services.Interfaces;
@@ -9,7 +10,7 @@ namespace CouncilAgendaApi.Controllers;
 
 [ApiController]
 [ApiVersion(1)]
-[Route("api/[controller]")]
+[Route(ApiRoutes.Organizations)]
 [Authorize]
 public class OrganizationsController : BaseController
 {
