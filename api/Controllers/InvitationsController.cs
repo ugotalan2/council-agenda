@@ -34,4 +34,20 @@ public class InvitationsController : BaseController
         var invitation = await _invitationService.InvitePerson(GetClerkUserId(), request);
         return CreatedAtAction(nameof(GetPendingInvitations), invitation);
     }
+
+    [HttpDelete("{invitationId}")]
+    public async Task<IActionResult> CancelInvitation(Guid invitationId)
+    {
+        var cancelled = await _invitationService.CancelInvitation(GetClerkUserId(), invitationId);
+        if (!cancelled) return NotFound();
+        return NoContent();
+    }
+
+    [HttpPost("{invitationId}/sync")]
+    public async Task<IActionResult> SyncInvitation(Guid invitationId)
+    {
+        var synced = await _invitationService.SyncInvitation(GetClerkUserId(), invitationId);
+        if (!synced) return BadRequest("Could not find a Clerk account for this email.");
+        return Ok();
+    }
 }

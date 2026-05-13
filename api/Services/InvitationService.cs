@@ -123,31 +123,67 @@ public class InvitationService : IInvitationService
 
     public async Task<List<PeopleResponse>> GetMyPeople(string clerkUserId)
     {
-        // Get all orgs where the current user is admin
         var myAdminOrgIds = await _db.UserOrganizations
             .Where(uo => uo.ClerkUserId == clerkUserId && uo.Role == "admin")
             .Select(uo => uo.OrganizationId)
             .ToListAsync();
 
-        // Get all users in those orgs (excluding self)
         var peopleInMyOrgs = await _db.UserOrganizations
             .Include(uo => uo.Organization)
             .Where(uo => myAdminOrgIds.Contains(uo.OrganizationId)
                 && uo.ClerkUserId != clerkUserId)
             .GroupBy(uo => uo.ClerkUserId)
-            .Select(g => new PeopleResponse(
-                g.Key,
-                "",
-                null,
-                g.Select(uo => new OrgAccessSummary(
+            .Select(g => new
+            {
+                ClerkUserId = g.Key,
+                Organizations = g.Select(uo => new OrgAccessSummary(
                     uo.OrganizationId,
                     uo.Organization.Name,
                     uo.Role
                 )).ToList()
-            ))
+            })
             .ToListAsync();
 
-        return peopleInMyOrgs;
+        if (!peopleInMyOrgs.Any()) return new List<PeopleResponse>();
+
+        // Fetch names from Clerk
+        var client = _httpClientFactory.CreateClient();
+        var results = new List<PeopleResponse>();
+
+        foreach (var person in peopleInMyOrgs)
+        {
+            var request = new HttpRequestMessage(
+                HttpMethod.Get,
+                $"https://api.clerk.com/v1/users/{person.ClerkUserId}");
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
+                "Bearer", _config["Clerk:SecretKey"]);
+
+            var response = await client.SendAsync(request);
+            string? name = null;
+            string email = "";
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                var doc = JsonDocument.Parse(json);
+                var firstName = doc.RootElement.GetProperty("first_name").GetString();
+                var lastName = doc.RootElement.GetProperty("last_name").GetString();
+                name = $"{firstName} {lastName}".Trim();
+
+                var emailAddresses = doc.RootElement.GetProperty("email_addresses");
+                if (emailAddresses.GetArrayLength() > 0)
+                    email = emailAddresses[0].GetProperty("email_address").GetString() ?? "";
+            }
+
+            results.Add(new PeopleResponse(
+                person.ClerkUserId,
+                email,
+                name,
+                person.Organizations
+            ));
+        }
+
+        return results;
     }
 
     public async Task UpdatePersonAccess(string clerkUserId, string targetClerkUserId, List<OrgRoleAssignment> assignments)
@@ -203,5 +239,72 @@ public class InvitationService : IInvitationService
             _db.UserOrganizations.Remove(userOrg);
             await _db.SaveChangesAsync();
         }
+    }
+
+    public async Task<bool> CancelInvitation(string clerkUserId, Guid invitationId)
+    {
+        var invitation = await _db.Invitations
+            .FirstOrDefaultAsync(i => i.Id == invitationId
+                && i.InvitedByClerkUserId == clerkUserId
+                && i.Status == "pending");
+
+        if (invitation == null) return false;
+
+        invitation.Status = "cancelled";
+        await _db.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> SyncInvitation(string clerkUserId, Guid invitationId)
+    {
+        var invitation = await _db.Invitations
+            .Include(i => i.Organizations)
+            .FirstOrDefaultAsync(i => i.Id == invitationId
+                && i.InvitedByClerkUserId == clerkUserId);
+
+        if (invitation == null) return false;
+
+        // Look up user in Clerk by email
+        var client = _httpClientFactory.CreateClient();
+        var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"https://api.clerk.com/v1/users?email_address={Uri.EscapeDataString(invitation.InvitedEmail)}");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
+            "Bearer", _config["Clerk:SecretKey"]);
+
+        var response = await client.SendAsync(request);
+        var json = await response.Content.ReadAsStringAsync();
+        
+        if (!response.IsSuccessStatusCode) return false;
+
+        var doc = JsonDocument.Parse(json);
+        var users = doc.RootElement;
+
+        if (users.GetArrayLength() == 0) return false;
+
+        var foundClerkUserId = users[0].GetProperty("id").GetString();
+        if (string.IsNullOrEmpty(foundClerkUserId)) return false;
+
+        // Create UserOrganization records
+        foreach (var org in invitation.Organizations)
+        {
+            var existing = await _db.UserOrganizations
+                .AnyAsync(uo => uo.OrganizationId == org.OrganizationId
+                    && uo.ClerkUserId == foundClerkUserId);
+
+            if (!existing)
+            {
+                _db.UserOrganizations.Add(new UserOrganization
+                {
+                    ClerkUserId = foundClerkUserId,
+                    OrganizationId = org.OrganizationId,
+                    Role = org.Role
+                });
+            }
+        }
+
+        invitation.Status = "accepted";
+        await _db.SaveChangesAsync();
+        return true;
     }
 }
