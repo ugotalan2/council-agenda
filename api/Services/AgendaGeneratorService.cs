@@ -16,7 +16,7 @@ public class AgendaGeneratorService
     public async Task<List<AgendaItem>> GenerateAgenda(Guid orgId, Guid meetingId)
     {
         var org = await _db.Organizations.FindAsync(orgId)
-            ?? throw new Exception("Organization not found");
+            ?? throw new KeyNotFoundException("Organization not found");
 
         var members = await _db.Members
             .Where(m => m.OrganizationId == orgId && m.Active)
@@ -49,7 +49,7 @@ public class AgendaGeneratorService
 
         // 3. Carry forward open assignments due by this meeting
         var meeting = await _db.Meetings.FindAsync(meetingId)
-            ?? throw new Exception("Meeting not found");
+            ?? throw new KeyNotFoundException("Meeting not found");
 
         var dueAssignments = await _db.Assignments
             .Where(a => a.Meeting.OrganizationId == orgId

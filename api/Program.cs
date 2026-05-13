@@ -1,9 +1,13 @@
 using CouncilAgendaApi.Data;
+using CouncilAgendaApi.Middleware;
 using CouncilAgendaApi.Services;
 using CouncilAgendaApi.Services.Interfaces;
+using CouncilAgendaApi.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Authorization;
+using Asp.Versioning;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,14 +53,34 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IAuthorizationHandler, OrgAccessHandler>();
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("OrgViewer", policy =>
+        policy.Requirements.Add(new OrgAccessRequirement("viewer")));
+    options.AddPolicy("OrgEditor", policy =>
+        policy.Requirements.Add(new OrgAccessRequirement("editor")));
+    options.AddPolicy("OrgAdmin", policy =>
+        policy.Requirements.Add(new OrgAccessRequirement("admin")));
+});
 builder.Services.AddScoped<AgendaGeneratorService>();
 builder.Services.AddScoped<DiscussionQuestionService>();
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 builder.Services.AddScoped<IMemberService, MemberService>();
 builder.Services.AddScoped<IMeetingService, MeetingService>();
+builder.Services.AddScoped<IHandbookService, HandbookService>();
 builder.Services.AddScoped<AgendaGeneratorService>();
 builder.Services.AddScoped<DiscussionQuestionService>();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+}).AddMvc();
 
 var app = builder.Build();
 
@@ -70,5 +94,6 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.UseExceptionHandler();
 
 app.Run();

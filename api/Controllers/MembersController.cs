@@ -1,13 +1,16 @@
 using CouncilAgendaApi.Data;
 using CouncilAgendaApi.DTOs;
 using CouncilAgendaApi.Services.Interfaces;
+using CouncilAgendaApi.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Asp.Versioning;
 
 namespace CouncilAgendaApi.Controllers;
 
 [ApiController]
-[Route("api/organizations/{orgId}/members")]
+[ApiVersion(1)]
+[Route(ApiRoutes.Members)]
 [Authorize]
 public class MembersController : BaseController
 {
@@ -19,34 +22,34 @@ public class MembersController : BaseController
     }
 
     [HttpGet]
+    [Authorize(Policy = "OrgViewer")]
     public async Task<IActionResult> GetMembers(Guid orgId)
     {
-        if (!await HasAccess(orgId)) return Forbid();
         var members = await _memberService.GetMembers(orgId);
         return Ok(members);
     }
 
     [HttpPost]
+    [Authorize(Policy = "OrgEditor")]
     public async Task<IActionResult> AddMember(Guid orgId, [FromBody] MemberRequest request)
     {
-        if (!await HasAccess(orgId, "editor")) return Forbid();
         var member = await _memberService.AddMember(orgId, request);
         return CreatedAtAction(nameof(GetMembers), new { orgId }, member);
     }
 
     [HttpPut("{memberId}")]
+    [Authorize(Policy = "OrgEditor")]
     public async Task<IActionResult> UpdateMember(Guid orgId, Guid memberId, [FromBody] MemberRequest request)
     {
-        if (!await HasAccess(orgId, "editor")) return Forbid();
         var member = await _memberService.UpdateMember(orgId, memberId, request);
         if (member == null) return NotFound();
         return Ok(member);
     }
 
     [HttpDelete("{memberId}")]
+    [Authorize(Policy = "OrgEditor")]
     public async Task<IActionResult> DeactivateMember(Guid orgId, Guid memberId)
     {
-        if (!await HasAccess(orgId, "editor")) return Forbid();
         var deactivated = await _memberService.DeactivateMember(orgId, memberId);
         if (!deactivated) return NotFound();
         return NoContent();
