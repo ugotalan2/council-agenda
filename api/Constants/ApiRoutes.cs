@@ -8,5 +8,6 @@ public static class ApiRoutes
     public const string Meetings = OrgBase + "/meetings";
     public const string Handbook = OrgBase + "/handbook";
     public const string MinistryAreas = OrgBase + "/ministry-areas";
+	public const string Assignments = OrgBase + "/assignments";
     public const string Organizations = Base + "/organizations";
 }

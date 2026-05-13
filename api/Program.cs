@@ -73,6 +73,8 @@ builder.Services.AddScoped<IMeetingService, MeetingService>();
 builder.Services.AddScoped<IHandbookService, HandbookService>();
 builder.Services.AddScoped<AgendaGeneratorService>();
 builder.Services.AddScoped<DiscussionQuestionService>();
+builder.Services.AddScoped<IMinistryAreaService, MinistryAreaService>();
+builder.Services.AddScoped<IAssignmentService, AssignmentService>();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddApiVersioning(options =>
