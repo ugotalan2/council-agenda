@@ -40,14 +40,44 @@ public class OrganizationService : IOrganizationService
         };
 
         _db.Organizations.Add(org);
-        await _db.SaveChangesAsync(); // save org first to get the Id
+        await _db.SaveChangesAsync();
 
+        // Create default settings
+        _db.OrganizationSettings.Add(new OrganizationSettings
+        {
+            OrganizationId = org.Id,
+            MeetingDay = "Sunday",
+            MeetingTime = new TimeOnly(11, 0),
+            Frequency = "weekly",
+            MeetingDurationMinutes = 60
+        });
+
+        // Add admin user
         _db.UserOrganizations.Add(new UserOrganization
         {
             ClerkUserId = clerkUserId,
-            OrganizationId = org.Id, // now org.Id is populated
+            OrganizationId = org.Id,
             Role = "admin"
         });
+
+        // Seed default responsibilities for this org type
+        var defaults = DefaultResponsibilities.Defaults
+            .Where(d => d.OrgTypeScope == request.OrgType)
+            .ToList();
+
+        foreach (var (title, lcrUrl, minWeeks, maxWeeks, orgTypeScope) in defaults)
+        {
+            _db.RecurringResponsibilities.Add(new RecurringResponsibility
+            {
+                OrganizationId = org.Id,
+                Title = title,
+                LcrUrl = lcrUrl,
+                MinWeeks = minWeeks,
+                MaxWeeks = maxWeeks,
+                OrgTypeScope = orgTypeScope,
+                Active = true
+            });
+        }
 
         await _db.SaveChangesAsync();
 

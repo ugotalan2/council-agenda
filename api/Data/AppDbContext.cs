@@ -17,6 +17,12 @@ public class AppDbContext : DbContext
     public DbSet<MinistryArea> MinistryAreas => Set<MinistryArea>();
     public DbSet<HandbookSection> HandbookSections => Set<HandbookSection>();
     public DbSet<TopicBacklogItem> TopicBacklogItems => Set<TopicBacklogItem>();
+    public DbSet<OrganizationSettings> OrganizationSettings => Set<OrganizationSettings>();
+    public DbSet<AgendaAttendee> AgendaAttendees => Set<AgendaAttendee>();
+    public DbSet<AgendaNote> AgendaNotes => Set<AgendaNote>();
+    public DbSet<Attachment> Attachments => Set<Attachment>();
+    public DbSet<RecurringResponsibility> RecurringResponsibilities => Set<RecurringResponsibility>();
+    public DbSet<ResponsibilityCheckin> ResponsibilityCheckins => Set<ResponsibilityCheckin>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -118,6 +124,83 @@ public class AppDbContext : DbContext
             e.HasOne(t => t.MinistryArea)
              .WithMany(m => m.TopicBacklogItems)
              .HasForeignKey(t => t.MinistryAreaId);
+        });
+
+        modelBuilder.Entity<OrganizationSettings>(e =>
+        {
+            e.HasKey(o => o.Id);
+            e.Property(o => o.Id).HasDefaultValueSql("gen_random_uuid()");
+            e.HasOne(o => o.Organization)
+            .WithOne()
+            .HasForeignKey<OrganizationSettings>(o => o.OrganizationId);
+        });
+
+        modelBuilder.Entity<AgendaAttendee>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.Property(a => a.Id).HasDefaultValueSql("gen_random_uuid()");
+            e.HasOne(a => a.Meeting)
+            .WithMany(m => m.Attendees)
+            .HasForeignKey(a => a.MeetingId);
+            e.HasOne(a => a.Member)
+            .WithMany()
+            .HasForeignKey(a => a.MemberId);
+        });
+
+        modelBuilder.Entity<AgendaNote>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.Property(a => a.Id).HasDefaultValueSql("gen_random_uuid()");
+            e.Property(a => a.CreatedAt).HasDefaultValueSql("now()");
+            e.HasOne(a => a.Meeting)
+            .WithMany(m => m.Notes)
+            .HasForeignKey(a => a.MeetingId);
+            e.HasOne(a => a.AgendaItem)
+            .WithMany()
+            .HasForeignKey(a => a.AgendaItemId);
+        });
+
+        modelBuilder.Entity<Attachment>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.Property(a => a.Id).HasDefaultValueSql("gen_random_uuid()");
+            e.Property(a => a.CreatedAt).HasDefaultValueSql("now()");
+            e.HasOne(a => a.Organization)
+            .WithMany(o => o.Attachments)
+            .HasForeignKey(a => a.OrganizationId)
+            .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(a => a.AgendaItem)
+            .WithMany()
+            .HasForeignKey(a => a.AgendaItemId)
+            .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<RecurringResponsibility>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.Property(r => r.Id).HasDefaultValueSql("gen_random_uuid()");
+            e.Property(r => r.CreatedAt).HasDefaultValueSql("now()");
+            e.HasOne(r => r.Organization)
+            .WithMany(o => o.RecurringResponsibilities)
+            .HasForeignKey(r => r.OrganizationId)
+            .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ResponsibilityCheckin>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.Property(r => r.Id).HasDefaultValueSql("gen_random_uuid()");
+            e.Property(r => r.CheckedAt).HasDefaultValueSql("now()");
+            e.HasOne(r => r.Responsibility)
+            .WithMany(r => r.Checkins)
+            .HasForeignKey(r => r.ResponsibilityId);
+        });
+
+        modelBuilder.Entity<Assignment>(e =>
+        {
+            e.HasOne(a => a.AgendaItem)
+            .WithMany()
+            .HasForeignKey(a => a.AgendaItemId);
         });
     }
 }
