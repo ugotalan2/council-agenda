@@ -1,9 +1,9 @@
 using CouncilAgendaApi.Data;
-using CouncilAgendaApi.Models;
+using CouncilAgendaApi.DTOs;
 using CouncilAgendaApi.Services;
+using CouncilAgendaApi.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace CouncilAgendaApi.Controllers;
 
@@ -12,9 +12,15 @@ namespace CouncilAgendaApi.Controllers;
 [Authorize]
 public class MeetingsController : BaseController
 {
-	private readonly AgendaGeneratorService _agendaGenerator;
-    public MeetingsController(AppDbContext db, AgendaGeneratorService agendaGenerator) : base(db)
+	private readonly IMeetingService _meetingService;
+    private readonly AgendaGeneratorService _agendaGenerator;
+
+    public MeetingsController(
+        AppDbContext db,
+        IMeetingService meetingService,
+        AgendaGeneratorService agendaGenerator) : base(db)
     {
+        _meetingService = meetingService;
         _agendaGenerator = agendaGenerator;
     }
 
@@ -22,20 +28,7 @@ public class MeetingsController : BaseController
     public async Task<IActionResult> GetMeetings(Guid orgId)
     {
         if (!await HasAccess(orgId)) return Forbid();
-
-        var meetings = await _db.Meetings
-            .Where(m => m.OrganizationId == orgId)
-            .OrderByDescending(m => m.MeetingDate)
-            .Select(m => new {
-                m.Id,
-                m.MeetingDate,
-                m.AgendaGenerated,
-                m.AgendaPublished,
-                m.GoogleDocUrl,
-                m.CreatedAt
-            })
-            .ToListAsync();
-
+        var meetings = await _meetingService.GetMeetings(orgId);
         return Ok(meetings);
     }
 
@@ -43,19 +36,8 @@ public class MeetingsController : BaseController
     public async Task<IActionResult> GetMeeting(Guid orgId, Guid meetingId)
     {
         if (!await HasAccess(orgId)) return Forbid();
-
-        var meeting = await _db.Meetings
-            .Where(m => m.Id == meetingId && m.OrganizationId == orgId)
-            .Include(m => m.AgendaItems)
-                .ThenInclude(a => a.HandbookSection)
-            .Include(m => m.AgendaItems)
-                .ThenInclude(a => a.TopicBacklogItem)
-            .Include(m => m.Assignments)
-                .ThenInclude(a => a.Owner)
-            .FirstOrDefaultAsync();
-
+        var meeting = await _meetingService.GetMeeting(orgId, meetingId);
         if (meeting == null) return NotFound();
-
         return Ok(meeting);
     }
 
@@ -63,59 +45,36 @@ public class MeetingsController : BaseController
     public async Task<IActionResult> CreateMeeting(Guid orgId, [FromBody] CreateMeetingRequest request)
     {
         if (!await HasAccess(orgId, "editor")) return Forbid();
-
-        var meeting = new Meeting
-        {
-            OrganizationId = orgId,
-            MeetingDate = request.MeetingDate,
-            AgendaGenerated = false,
-            AgendaPublished = false
-        };
-
-        _db.Meetings.Add(meeting);
-        await _db.SaveChangesAsync();
-
+        var meeting = await _meetingService.CreateMeeting(orgId, request);
         return CreatedAtAction(nameof(GetMeeting), new { orgId, meetingId = meeting.Id }, meeting);
     }
 
 	[HttpPost("{meetingId}/generate")]
-public async Task<IActionResult> GenerateAgenda(Guid orgId, Guid meetingId)
-{
-    if (!await HasAccess(orgId, "editor")) return Forbid();
-
-    var meeting = await _db.Meetings
-        .FirstOrDefaultAsync(m => m.Id == meetingId && m.OrganizationId == orgId);
-
-    if (meeting == null) return NotFound();
-
-    if (meeting.AgendaGenerated)
-        return BadRequest("Agenda has already been generated for this meeting.");
-
-    try
+    public async Task<IActionResult> GenerateAgenda(Guid orgId, Guid meetingId)
     {
-        var items = await _agendaGenerator.GenerateAgenda(orgId, meetingId);
-        return Ok(items);
+        if (!await HasAccess(orgId, "editor")) return Forbid();
+        var meeting = await _meetingService.GetMeeting(orgId, meetingId);
+        if (meeting == null) return NotFound();
+        if (meeting.AgendaGenerated)
+            return BadRequest("Agenda has already been generated for this meeting.");
+
+        try
+        {
+            var items = await _agendaGenerator.GenerateAgenda(orgId, meetingId);
+            return Ok(items);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
-    catch (Exception ex)
-    {
-        return BadRequest(ex.Message);
-    }
-}
 
     [HttpDelete("{meetingId}")]
     public async Task<IActionResult> DeleteMeeting(Guid orgId, Guid meetingId)
     {
         if (!await HasAccess(orgId, "admin")) return Forbid();
-
-        var meeting = await _db.Meetings
-            .FirstOrDefaultAsync(m => m.Id == meetingId && m.OrganizationId == orgId);
-
-        if (meeting == null) return NotFound();
-
-        _db.Meetings.Remove(meeting);
-        await _db.SaveChangesAsync();
+        var deleted = await _meetingService.DeleteMeeting(orgId, meetingId);
+        if (!deleted) return NotFound();
         return NoContent();
     }
 }
-
-public record CreateMeetingRequest(DateTime MeetingDate);

@@ -1,8 +1,8 @@
 using CouncilAgendaApi.Data;
-using CouncilAgendaApi.Models;
+using CouncilAgendaApi.DTOs;
+using CouncilAgendaApi.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace CouncilAgendaApi.Controllers;
 
@@ -11,25 +11,18 @@ namespace CouncilAgendaApi.Controllers;
 [Authorize]
 public class MembersController : BaseController
 {
-    public MembersController(AppDbContext db) : base(db) { }
+    private readonly IMemberService _memberService;
+
+    public MembersController(AppDbContext db, IMemberService memberService) : base(db)
+    {
+        _memberService = memberService;
+    }
 
     [HttpGet]
     public async Task<IActionResult> GetMembers(Guid orgId)
     {
         if (!await HasAccess(orgId)) return Forbid();
-
-        var members = await _db.Members
-            .Where(m => m.OrganizationId == orgId && m.Active)
-            .OrderBy(m => m.Name)
-            .Select(m => new {
-                m.Id,
-                m.Name,
-                m.Calling,
-                m.Active,
-                m.ClerkUserId
-            })
-            .ToListAsync();
-
+        var members = await _memberService.GetMembers(orgId);
         return Ok(members);
     }
 
@@ -37,19 +30,7 @@ public class MembersController : BaseController
     public async Task<IActionResult> AddMember(Guid orgId, [FromBody] MemberRequest request)
     {
         if (!await HasAccess(orgId, "editor")) return Forbid();
-
-        var member = new Member
-        {
-            OrganizationId = orgId,
-            Name = request.Name,
-            Calling = request.Calling,
-            ClerkUserId = request.ClerkUserId ?? string.Empty,
-            Active = true
-        };
-
-        _db.Members.Add(member);
-        await _db.SaveChangesAsync();
-
+        var member = await _memberService.AddMember(orgId, request);
         return CreatedAtAction(nameof(GetMembers), new { orgId }, member);
     }
 
@@ -57,18 +38,8 @@ public class MembersController : BaseController
     public async Task<IActionResult> UpdateMember(Guid orgId, Guid memberId, [FromBody] MemberRequest request)
     {
         if (!await HasAccess(orgId, "editor")) return Forbid();
-
-        var member = await _db.Members
-            .FirstOrDefaultAsync(m => m.Id == memberId && m.OrganizationId == orgId);
-
+        var member = await _memberService.UpdateMember(orgId, memberId, request);
         if (member == null) return NotFound();
-
-        member.Name = request.Name;
-        member.Calling = request.Calling;
-        if (request.ClerkUserId != null)
-            member.ClerkUserId = request.ClerkUserId;
-
-        await _db.SaveChangesAsync();
         return Ok(member);
     }
 
@@ -76,16 +47,8 @@ public class MembersController : BaseController
     public async Task<IActionResult> DeactivateMember(Guid orgId, Guid memberId)
     {
         if (!await HasAccess(orgId, "editor")) return Forbid();
-
-        var member = await _db.Members
-            .FirstOrDefaultAsync(m => m.Id == memberId && m.OrganizationId == orgId);
-
-        if (member == null) return NotFound();
-
-        member.Active = false;
-        await _db.SaveChangesAsync();
+        var deactivated = await _memberService.DeactivateMember(orgId, memberId);
+        if (!deactivated) return NotFound();
         return NoContent();
     }
 }
-
-public record MemberRequest(string Name, string Calling, string? ClerkUserId);

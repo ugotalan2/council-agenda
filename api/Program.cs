@@ -1,5 +1,6 @@
 using CouncilAgendaApi.Data;
 using CouncilAgendaApi.Services;
+using CouncilAgendaApi.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -49,6 +50,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
+builder.Services.AddScoped<AgendaGeneratorService>();
+builder.Services.AddScoped<DiscussionQuestionService>();
+builder.Services.AddScoped<IOrganizationService, OrganizationService>();
+builder.Services.AddScoped<IMemberService, MemberService>();
+builder.Services.AddScoped<IMeetingService, MeetingService>();
 builder.Services.AddScoped<AgendaGeneratorService>();
 builder.Services.AddScoped<DiscussionQuestionService>();
 
