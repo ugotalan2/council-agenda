@@ -65,6 +65,15 @@ public class MeetingsController : BaseController
         return Ok(items);
     }
 
+    [HttpPut("{meetingId}")]
+    [Authorize(Policy = "OrgEditor")]
+    public async Task<IActionResult> UpdateMeeting(Guid orgId, Guid meetingId, [FromBody] UpdateMeetingRequest request)
+    {
+        var meeting = await _meetingService.UpdateMeeting(orgId, meetingId, request);
+        if (meeting == null) return NotFound();
+        return Ok(meeting);
+    }
+
     [HttpDelete("{meetingId}")]
     [Authorize(Policy = "OrgEditor")]
     public async Task<IActionResult> DeleteMeeting(Guid orgId, Guid meetingId)

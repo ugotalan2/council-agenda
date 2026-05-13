@@ -92,6 +92,7 @@ builder.Services.AddScoped<AgendaGeneratorService>();
 builder.Services.AddScoped<DiscussionQuestionService>();
 builder.Services.AddScoped<IMinistryAreaService, MinistryAreaService>();
 builder.Services.AddScoped<IAssignmentService, AssignmentService>();
+builder.Services.AddScoped<IInvitationService, InvitationService>();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddApiVersioning(options =>

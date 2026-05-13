@@ -93,6 +93,26 @@ public class MeetingService : IMeetingService
         );
     }
 
+    public async Task<MeetingResponse?> UpdateMeeting(Guid orgId, Guid meetingId, UpdateMeetingRequest request)
+    {
+        var meeting = await _db.Meetings
+            .FirstOrDefaultAsync(m => m.Id == meetingId && m.OrganizationId == orgId);
+
+        if (meeting == null) return null;
+
+        meeting.MeetingDate = request.MeetingDate;
+        await _db.SaveChangesAsync();
+
+        return new MeetingResponse(
+            meeting.Id,
+            meeting.MeetingDate,
+            meeting.AgendaGenerated,
+            meeting.AgendaPublished,
+            meeting.GoogleDocUrl,
+            meeting.CreatedAt
+        );
+    }
+
     public async Task<bool> DeleteMeeting(Guid orgId, Guid meetingId)
     {
         var meeting = await _db.Meetings

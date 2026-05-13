@@ -5,6 +5,8 @@ public static class ApiRoutes
     private const string Base = "api/v{version:apiVersion}";
     public const string Organizations = Base + "/organizations";
     public const string OrgBase = Base + "/organizations/{orgId}";
+    public const string Invitations = Base + "/invitations";
+    public const string People = Base + "/people";
     public const string Members = OrgBase + "/members";
     public const string Meetings = OrgBase + "/meetings";
     public const string Handbook = OrgBase + "/handbook";

@@ -8,4 +8,5 @@ public interface IMeetingService
     Task<MeetingDetailResponse?> GetMeeting(Guid orgId, Guid meetingId);
     Task<MeetingResponse> CreateMeeting(Guid orgId, CreateMeetingRequest request);
     Task<bool> DeleteMeeting(Guid orgId, Guid meetingId);
+    Task<MeetingResponse?> UpdateMeeting(Guid orgId, Guid meetingId, UpdateMeetingRequest request);
 }

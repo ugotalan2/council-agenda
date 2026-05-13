@@ -23,6 +23,8 @@ public class AppDbContext : DbContext
     public DbSet<Attachment> Attachments => Set<Attachment>();
     public DbSet<RecurringResponsibility> RecurringResponsibilities => Set<RecurringResponsibility>();
     public DbSet<ResponsibilityCheckin> ResponsibilityCheckins => Set<ResponsibilityCheckin>();
+    public DbSet<Invitation> Invitations => Set<Invitation>();
+    public DbSet<InvitationOrganization> InvitationOrganizations => Set<InvitationOrganization>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -201,6 +203,25 @@ public class AppDbContext : DbContext
             e.HasOne(a => a.AgendaItem)
             .WithMany()
             .HasForeignKey(a => a.AgendaItemId);
+        });
+
+        modelBuilder.Entity<Invitation>(e =>
+        {
+            e.HasKey(i => i.Id);
+            e.Property(i => i.Id).HasDefaultValueSql("gen_random_uuid()");
+            e.Property(i => i.CreatedAt).HasDefaultValueSql("now()");
+        });
+
+        modelBuilder.Entity<InvitationOrganization>(e =>
+        {
+            e.HasKey(i => i.Id);
+            e.Property(i => i.Id).HasDefaultValueSql("gen_random_uuid()");
+            e.HasOne(i => i.Invitation)
+            .WithMany(i => i.Organizations)
+            .HasForeignKey(i => i.InvitationId);
+            e.HasOne(i => i.Organization)
+            .WithMany()
+            .HasForeignKey(i => i.OrganizationId);
         });
     }
 }

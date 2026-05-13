@@ -40,3 +40,5 @@ public record AssignmentResponse(
 public record CreateMeetingRequest(
     DateTime MeetingDate
 );
+
+public record UpdateMeetingRequest(DateTime MeetingDate);
