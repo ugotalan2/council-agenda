@@ -13,5 +13,7 @@ public class BaseController : ControllerBase
     }
 
     protected string GetClerkUserId() =>
-        User.FindFirst("sub")?.Value ?? string.Empty;
+        User.FindFirst("sub")?.Value
+        ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+        ?? string.Empty;
 }
