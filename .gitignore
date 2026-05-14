@@ -1,3 +1,6 @@
-appsettings.Development.json
+# API secrets
+api/appsettings.Development.json
+api/appsettings.json
+
 api/bin/
 api/obj/
