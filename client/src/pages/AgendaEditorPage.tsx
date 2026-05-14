@@ -39,7 +39,7 @@ interface Member {
 
 export default function AgendaEditorPage() {
   const { orgId, meetingId } = useParams<{ orgId: string; meetingId: string }>()
-  const navigate = useNavigate()
+  const _navigate = useNavigate()
   const { getToken, isLoaded } = useAuth()
   const [meeting, setMeeting] = useState<Meeting | null>(null)
   const [members, setMembers] = useState<Member[]>([])
@@ -65,8 +65,8 @@ export default function AgendaEditorPage() {
         const date = new Date(meetingRes.data.meetingDate)
         setMeetingDate(date.toISOString().split('T')[0])
         setMeetingTime(date.toTimeString().slice(0, 5))
-      } catch (err: any) {
-        setError(err.message)
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'An error occurred')
       } finally {
         setLoading(false)
       }

@@ -28,7 +28,7 @@ interface Member {
 
 export function useOrganization(orgId: string) {
   const [org, setOrg] = useState<Organization | null>(null)
-  const [settings, setSettings] = useState<OrganizationSettings | null>(null)
+  const [settings] = useState<OrganizationSettings | null>(null)
   const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -52,8 +52,8 @@ export function useOrganization(orgId: string) {
 
         setOrg(found)
         setMembers(membersRes.data)
-      } catch (err: any) {
-        setError(err.message)
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'An error occurred')
       } finally {
         setLoading(false)
       }

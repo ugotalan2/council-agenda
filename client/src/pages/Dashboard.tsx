@@ -323,8 +323,8 @@ export default function Dashboard() {
                           setPendingInvites(prev => prev.filter(i => i.id !== invite.id))
                           const peopleRes = await api.get('/api/v1/people')
                           setPeople(peopleRes.data)
-                        } catch (err) {
-                          alert('Could not find a Clerk account for this email.')
+                        } catch {
+                          // silently fail
                         }
                       }}
                     >

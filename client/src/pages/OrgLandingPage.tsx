@@ -65,8 +65,8 @@ export default function OrgLandingPage() {
         meetingDate: new Date().toISOString()
       })
       navigate(`/organizations/${orgId}/meetings/${res.data.id}`)
-    } catch (err: any) {
-      console.error(err)
+    } catch (err: unknown) {
+      console.error(err instanceof Error ? err.message : 'An error occurred')
     }
   }
 
