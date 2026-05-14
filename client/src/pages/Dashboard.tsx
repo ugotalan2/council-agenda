@@ -417,19 +417,25 @@ export default function Dashboard() {
                           style={{ width: 110 }}
                           value={org.role}
                           onChange={async (e) => {
+                            const newRole = e.target.value
+                            const targetClerkUserId = person.clerkUserId
+                            const targetOrgId = org.orgId
                             await api.put(`/api/v1/people/${person.clerkUserId}/access`, [
-                              { organizationId: org.orgId, role: e.target.value }
+                              { organizationId: org.orgId, role: newRole }
                             ])
-                            setPeople(prev => prev.map(p =>
-                              p.clerkUserId === person.clerkUserId
-                                ? {
+                            setPeople(prev => {
+                              const updated = prev.map(p => {
+                                if (p.clerkUserId !== targetClerkUserId) return p
+                                return {
                                     ...p,
-                                    organizations: p.organizations.map(o =>
-                                      o.orgId === org.orgId ? { ...o, role: e.target.value } : o
-                                    )
+                                    organizations: p.organizations.map(o => {
+                                      if (o.orgId !== targetOrgId) return o
+                                      return { ...o, role: newRole }
+                                    })
                                   }
-                                : p
-                            ))
+                              })
+                              return [...updated]
+                            })
                           }}
                         >
                           <option value="viewer">Viewer</option>

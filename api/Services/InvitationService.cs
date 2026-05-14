@@ -170,6 +170,18 @@ public class InvitationService : IInvitationService
                 var lastName = doc.RootElement.GetProperty("last_name").GetString();
                 name = $"{firstName} {lastName}".Trim();
 
+                // Fall back to external account name (Google OAuth etc)
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    var externalAccounts = doc.RootElement.GetProperty("external_accounts");
+                    if (externalAccounts.GetArrayLength() > 0)
+                    {
+                        var given = externalAccounts[0].GetProperty("given_name").GetString();
+                        var family = externalAccounts[0].GetProperty("family_name").GetString();
+                        name = $"{given} {family}".Trim();
+                    }
+                }
+
                 var emailAddresses = doc.RootElement.GetProperty("email_addresses");
                 if (emailAddresses.GetArrayLength() > 0)
                     email = emailAddresses[0].GetProperty("email_address").GetString() ?? "";
