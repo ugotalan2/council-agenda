@@ -8,3 +8,6 @@ api/obj/
 api.tests/bin/
 api.tests/obj/
 client/dist/
+
+api.tests/bin/
+api.tests/obj/
