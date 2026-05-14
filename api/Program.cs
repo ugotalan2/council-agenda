@@ -1,15 +1,15 @@
+﻿using Asp.Versioning;
+using Asp.Versioning.ApiExplorer;
+using CouncilAgendaApi.Authorization;
 using CouncilAgendaApi.Data;
 using CouncilAgendaApi.Middleware;
 using CouncilAgendaApi.Services;
 using CouncilAgendaApi.Services.Interfaces;
-using CouncilAgendaApi.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Authorization;
-using Asp.Versioning;
-using Asp.Versioning.ApiExplorer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 

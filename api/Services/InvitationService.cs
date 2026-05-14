@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using CouncilAgendaApi.Data;
 using CouncilAgendaApi.DTOs;
@@ -45,34 +45,34 @@ public class InvitationService : IInvitationService
 
         string? clerkInvitationId = null;
 
-		try
-		{
-			var payload = JsonSerializer.Serialize(new
-			{
-				email_address = request.Email,
-				redirect_url = _config["App:FrontendUrl"] + "/accept-invite"
-			});
+        try
+        {
+            var payload = JsonSerializer.Serialize(new
+            {
+                email_address = request.Email,
+                redirect_url = _config["App:FrontendUrl"] + "/accept-invite"
+            });
 
-			var httpRequest = new HttpRequestMessage(HttpMethod.Post, "https://api.clerk.com/v1/invitations")
-			{
-				Content = new StringContent(payload, Encoding.UTF8, "application/json")
-			};
-			httpRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
-				"Bearer", _config["Clerk:SecretKey"]);
+            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "https://api.clerk.com/v1/invitations")
+            {
+                Content = new StringContent(payload, Encoding.UTF8, "application/json")
+            };
+            httpRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
+                "Bearer", _config["Clerk:SecretKey"]);
 
-			var client = _httpClientFactory.CreateClient();
-			var response = await client.SendAsync(httpRequest);
-			if (response.IsSuccessStatusCode)
-			{
-				var json = await response.Content.ReadAsStringAsync();
-				var doc = JsonDocument.Parse(json);
-				clerkInvitationId = doc.RootElement.GetProperty("id").GetString();
-			}
-		}
-		catch (Exception ex)
-		{
-			Console.WriteLine($"Clerk invitation failed: {ex.Message}");
-		}
+            var client = _httpClientFactory.CreateClient();
+            var response = await client.SendAsync(httpRequest);
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                var doc = JsonDocument.Parse(json);
+                clerkInvitationId = doc.RootElement.GetProperty("id").GetString();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Clerk invitation failed: {ex.Message}");
+        }
 
         var invitation = new Invitation
         {
@@ -286,7 +286,7 @@ public class InvitationService : IInvitationService
 
         var response = await client.SendAsync(request);
         var json = await response.Content.ReadAsStringAsync();
-        
+
         if (!response.IsSuccessStatusCode) return false;
 
         var doc = JsonDocument.Parse(json);

@@ -1,10 +1,10 @@
+﻿using Asp.Versioning;
+using CouncilAgendaApi.Constants;
 using CouncilAgendaApi.Data;
 using CouncilAgendaApi.DTOs;
 using CouncilAgendaApi.Services.Interfaces;
-using CouncilAgendaApi.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Asp.Versioning;
 
 namespace CouncilAgendaApi.Controllers;
 

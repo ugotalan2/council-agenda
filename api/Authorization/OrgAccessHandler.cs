@@ -1,4 +1,4 @@
-using CouncilAgendaApi.Data;
+﻿using CouncilAgendaApi.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,7 +21,7 @@ public class OrgAccessHandler : AuthorizationHandler<OrgAccessRequirement>
     {
         var clerkUserId = context.User.FindFirst("sub")?.Value
             ?? context.User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
-        
+
         if (string.IsNullOrEmpty(clerkUserId))
         {
             context.Fail();

@@ -1,4 +1,4 @@
-namespace CouncilAgendaApi.DTOs;
+﻿namespace CouncilAgendaApi.DTOs;
 
 public record OrganizationResponse(
     Guid Id,

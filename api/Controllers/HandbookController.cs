@@ -1,11 +1,11 @@
+﻿using Asp.Versioning;
+using CouncilAgendaApi.Constants;
 using CouncilAgendaApi.Data;
 using CouncilAgendaApi.DTOs;
 using CouncilAgendaApi.Services;
 using CouncilAgendaApi.Services.Interfaces;
-using CouncilAgendaApi.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Asp.Versioning;
 
 namespace CouncilAgendaApi.Controllers;
 
@@ -15,13 +15,13 @@ namespace CouncilAgendaApi.Controllers;
 [Authorize]
 public class HandbookController : BaseController
 {
-	private readonly IHandbookService _handbookService;
+    private readonly IHandbookService _handbookService;
     private readonly DiscussionQuestionService _questionService;
 
     public HandbookController(
-		AppDbContext db, 
-		IHandbookService handbookService,
-		DiscussionQuestionService questionService) : base(db)
+        AppDbContext db,
+        IHandbookService handbookService,
+        DiscussionQuestionService questionService) : base(db)
     {
         _handbookService = handbookService;
         _questionService = questionService;
@@ -36,7 +36,7 @@ public class HandbookController : BaseController
     }
 
     [HttpPost]
-	[Authorize(Policy = "OrgEditor")]
+    [Authorize(Policy = "OrgEditor")]
     public async Task<IActionResult> AddSection(Guid orgId, [FromBody] HandbookSectionRequest request)
     {
         var section = await _handbookService.AddSection(orgId, request);

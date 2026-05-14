@@ -1,4 +1,4 @@
-using CouncilAgendaApi.Models;
+﻿using CouncilAgendaApi.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace CouncilAgendaApi.Data;

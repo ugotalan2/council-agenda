@@ -1,11 +1,11 @@
+﻿using Asp.Versioning;
+using CouncilAgendaApi.Constants;
 using CouncilAgendaApi.Data;
 using CouncilAgendaApi.DTOs;
 using CouncilAgendaApi.Services;
 using CouncilAgendaApi.Services.Interfaces;
-using CouncilAgendaApi.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Asp.Versioning;
 
 namespace CouncilAgendaApi.Controllers;
 
@@ -15,7 +15,7 @@ namespace CouncilAgendaApi.Controllers;
 [Authorize]
 public class MeetingsController : BaseController
 {
-	private readonly IMeetingService _meetingService;
+    private readonly IMeetingService _meetingService;
     private readonly AgendaGeneratorService _agendaGenerator;
 
     public MeetingsController(
@@ -52,7 +52,7 @@ public class MeetingsController : BaseController
         return CreatedAtAction(nameof(GetMeeting), new { orgId, meetingId = meeting.Id }, meeting);
     }
 
-	[HttpPost("{meetingId}/generate")]
+    [HttpPost("{meetingId}/generate")]
     [Authorize(Policy = "OrgEditor")]
     public async Task<IActionResult> GenerateAgenda(Guid orgId, Guid meetingId)
     {

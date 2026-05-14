@@ -1,4 +1,4 @@
-namespace CouncilAgendaApi.Models;
+﻿namespace CouncilAgendaApi.Models;
 
 public class Assignment
 {

@@ -1,4 +1,4 @@
-namespace CouncilAgendaApi.DTOs;
+﻿namespace CouncilAgendaApi.DTOs;
 
 public record MinistryAreaResponse(
     Guid Id,

@@ -1,4 +1,4 @@
-namespace CouncilAgendaApi.Data;
+﻿namespace CouncilAgendaApi.Data;
 
 public static class DefaultResponsibilities
 {

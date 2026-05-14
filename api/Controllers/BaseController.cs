@@ -1,4 +1,4 @@
-using CouncilAgendaApi.Data;
+﻿using CouncilAgendaApi.Data;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CouncilAgendaApi.Controllers;

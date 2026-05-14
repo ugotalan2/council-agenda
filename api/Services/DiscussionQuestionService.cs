@@ -1,6 +1,6 @@
-using OpenAI.Chat;
-using CouncilAgendaApi.Data;
+﻿using CouncilAgendaApi.Data;
 using Microsoft.EntityFrameworkCore;
+using OpenAI.Chat;
 
 namespace CouncilAgendaApi.Services;
 
