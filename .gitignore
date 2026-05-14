@@ -2,5 +2,9 @@
 api/appsettings.Development.json
 api/appsettings.json
 
+node_modules/
 api/bin/
 api/obj/
+api.tests/bin/
+api.tests/obj/
+client/dist/
