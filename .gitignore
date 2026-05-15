@@ -1,6 +1,7 @@
 # API secrets
 api/appsettings.Development.json
 api/appsettings.json
+api/publish/
 
 node_modules/
 api/bin/
@@ -11,3 +12,5 @@ client/dist/
 
 api.tests/bin/
 api.tests/obj/
+
+.env.docker
