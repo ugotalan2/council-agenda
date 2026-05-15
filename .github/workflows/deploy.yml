@@ -24,10 +24,11 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./api
+          file: ./api/Dockerfile.multistage
           push: true
           tags: councilagendaacr.azurecr.io/council-agenda-api:latest
 
-      - name: Restart Azure App Service
+      - name: Azure login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
@@ -49,7 +50,6 @@ jobs:
 
       - name: Deploy to Vercel
         run: vercel --prod --token ${{ secrets.VERCEL_TOKEN }} --yes
-        working-directory: ./client
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
