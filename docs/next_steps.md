@@ -1,13 +1,7 @@
 # Next Steps
 
-## Immediate — Resume Deployment
-1. Switch Azure App Service from Code to Container
-2. Push Docker image to ACR
-3. Wire App Service to pull from ACR
-4. Set env vars + verify live API
-5. Finalize `.github/workflows/deploy.yml`
-
 ## Known Bugs to Fix
+- local deploys still use the native publish + simple Dockerfile approach, while CI uses Dockerfile.multistage.
 1. **Names showing "Unknown" in People list** — `GetMyPeople` Clerk call returns null name properties for Google OAuth users; fall back to external account name
 2. **Role dropdown not re-rendering** — onChange fires but state mutation isn't creating new array reference; fix by creating new array
 

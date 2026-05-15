@@ -9,10 +9,14 @@
 
 ## Current State
 - ACR provisioned ✅
-- App Service provisioned ✅
-- Docker container verified working locally (Swagger confirmed)
-- `deploy.yml` workflow scaffolded
-- App Service still in Code mode — needs switch to Container
+- App Service provisioned and running in Container mode ✅
+- Docker image in ACR ✅
+- App Service wired to ACR with admin credentials ✅
+- Env vars set (Clerk, OpenAI, Supabase) ✅
+- Vercel deployed with correct VITE_API_URL and Clerk key ✅
+- DB migrations applied to Supabase ✅
+- GitHub Actions CD pipeline live (Azure + Vercel) ✅
+- Clerk on dev keys intentionally (no custom domain) ✅
 
 ## Immediate Next Steps
 1. Switch App Service from Code to Container
