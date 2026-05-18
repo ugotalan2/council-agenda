@@ -17,14 +17,17 @@ public class MeetingsController : BaseController
 {
     private readonly IMeetingService _meetingService;
     private readonly AgendaGeneratorService _agendaGenerator;
+    private readonly IAgendaExportService _agendaExportService;
 
     public MeetingsController(
         AppDbContext db,
         IMeetingService meetingService,
-        AgendaGeneratorService agendaGenerator) : base(db)
+        AgendaGeneratorService agendaGenerator,
+        IAgendaExportService agendaExportService) : base(db)
     {
         _meetingService = meetingService;
         _agendaGenerator = agendaGenerator;
+        _agendaExportService = agendaExportService;
     }
 
     [HttpGet]
@@ -81,5 +84,24 @@ public class MeetingsController : BaseController
         var deleted = await _meetingService.DeleteMeeting(orgId, meetingId);
         if (!deleted) return NotFound();
         return NoContent();
+    }
+
+    [HttpPost("{meetingId}/export")]
+    [Authorize(Policy = "OrgEditor")]
+    public async Task<IActionResult> ExportToGoogleDoc(Guid orgId, Guid meetingId)
+    {
+        try
+        {
+            var url = await _agendaExportService.ExportToGoogleDocAsync(orgId, meetingId);
+            return Ok(new { url });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }

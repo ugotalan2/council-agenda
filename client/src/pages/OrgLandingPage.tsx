@@ -41,6 +41,7 @@ export default function OrgLandingPage() {
   const [newMemberName, setNewMemberName] = useState('')
   const [newMemberCalling, setNewMemberCalling] = useState('')
   const [saving, setSaving] = useState(false)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isLoaded || !orgId) return
@@ -56,6 +57,14 @@ export default function OrgLandingPage() {
     }
     fetchMeetings()
   }, [isLoaded, orgId, getToken])
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('googleConnected') === 'true') {
+      window.history.replaceState({}, '', window.location.pathname)
+      setSuccessMessage('Google account connected successfully!')
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const createAgenda = async () => {
     try {
@@ -89,6 +98,10 @@ export default function OrgLandingPage() {
     }
   }
 
+  const connectGoogle = () => {
+    window.location.href = `${import.meta.env.VITE_API_URL}/api/v1/google/connect/${orgId}`
+  }
+
   if (loading) return <LoadingSpinner />
   if (error) return <ErrorAlert message={error} />
 
@@ -100,6 +113,17 @@ export default function OrgLandingPage() {
         backTo="/"
         backLabel="Dashboard"
       />
+
+      {successMessage && (
+        <div className="alert alert-success alert-dismissible mx-3 mt-3" role="alert">
+          {successMessage}
+          <button type="button" className="btn-close" onClick={() => setSuccessMessage(null)} />
+        </div>
+      )}
+
+      <button className="btn btn-outline-secondary btn-sm" onClick={connectGoogle}>
+        🔗 Connect Google Account
+      </button>
 
       <div className="container py-4">
         {error && <ErrorAlert message={error} />}

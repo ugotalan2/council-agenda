@@ -50,7 +50,7 @@ public class InvitationService : IInvitationService
             var payload = JsonSerializer.Serialize(new
             {
                 email_address = request.Email,
-                redirect_url = _config["App:FrontendUrl"] + "/accept-invite"
+                redirect_url = _config["Frontend:BaseUrl"] + "/accept-invite"
             });
 
             var httpRequest = new HttpRequestMessage(HttpMethod.Post, "https://api.clerk.com/v1/invitations")

@@ -29,6 +29,7 @@ interface Meeting {
   status: string
   agendaGenerated: boolean
   agendaPublished: boolean
+  googleDocUrl: string | null
 }
 
 interface Member {
@@ -49,6 +50,8 @@ export default function AgendaEditorPage() {
   const [meetingDate, setMeetingDate] = useState('')
   const [meetingTime, setMeetingTime] = useState('11:00')
   const [savingDate, setSavingDate] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [exportUrl, setExportUrl] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isLoaded || !orgId || !meetingId) return
@@ -61,6 +64,7 @@ export default function AgendaEditorPage() {
           api.get(`/api/v1/organizations/${orgId}/members`)
         ])
         setMeeting(meetingRes.data)
+        setExportUrl(meetingRes.data.googleDocUrl ?? null)
         setMembers(membersRes.data)
         const date = new Date(meetingRes.data.meetingDate)
         setMeetingDate(date.toISOString().split('T')[0])
@@ -86,6 +90,23 @@ export default function AgendaEditorPage() {
       })
     } finally {
       setSavingDate(false)
+    }
+  }
+
+  const exportToGoogleDoc = async () => {
+    setExporting(true)
+    try {
+      const token = await getToken()
+      setAuthToken(token)
+      const res = await api.post(
+        `/api/v1/organizations/${orgId}/meetings/${meetingId}/export`
+      )
+      setExportUrl(res.data.url)
+      window.open(res.data.url, '_blank')
+    } catch (err) {
+      setError('Export to Google Doc failed')
+    } finally {
+      setExporting(false)
     }
   }
 
@@ -136,9 +157,28 @@ export default function AgendaEditorPage() {
           >
             {savingDate ? 'Saving...' : 'Save'}
           </button>
-          <span className={`badge ms-auto ${meeting?.status === 'published' ? 'bg-success' : 'bg-secondary'}`}>
-            {meeting?.status}
-          </span>
+          <div className="ms-auto d-flex align-items-center gap-2">
+            <span className={`badge ${meeting?.status === 'published' ? 'bg-success' : 'bg-secondary'}`}>
+              {meeting?.status}
+            </span>
+            {exportUrl && (
+              <a
+                href={exportUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-outline-secondary btn-sm"
+              >
+                📄 View Doc
+              </a>
+            )}
+            <button
+              className="btn btn-success btn-sm"
+              onClick={exportToGoogleDoc}
+              disabled={exporting}
+            >
+              {exporting ? 'Exporting...' : '📤 Export to Google Doc'}
+            </button>
+          </div>
         </div>
       </div>
 
