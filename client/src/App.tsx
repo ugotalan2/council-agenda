@@ -18,7 +18,7 @@ function AuthSync({ onReady }: { onReady: () => void }) {
     syncToken()
     const interval = setInterval(syncToken, 60000)
     return () => clearInterval(interval)
-  }, [getToken])
+  }, [onReady, getToken])
 
   return null
 }
@@ -34,7 +34,10 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/organizations/:orgId" element={<OrgLandingPage />} />
-            <Route path="/organizations/:orgId/meetings/:meetingId" element={<AgendaEditorPage />} />
+            <Route
+              path="/organizations/:orgId/meetings/:meetingId"
+              element={<AgendaEditorPage />}
+            />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         )}

@@ -20,13 +20,13 @@ const ORG_TYPE_LABELS: Record<string, string> = {
   bishopric: 'Bishopric Meeting',
   ward_youth_council: 'Ward Youth Council',
   family_council: 'Family Council',
-  presidency_meeting: 'Presidency Meeting'
+  presidency_meeting: 'Presidency Meeting',
 }
 
 const STATUS_BADGES: Record<string, string> = {
   draft: 'bg-secondary',
   published: 'bg-success',
-  past: 'bg-light text-dark'
+  past: 'bg-light text-dark',
 }
 
 export default function OrgLandingPage() {
@@ -41,7 +41,14 @@ export default function OrgLandingPage() {
   const [newMemberName, setNewMemberName] = useState('')
   const [newMemberCalling, setNewMemberCalling] = useState('')
   const [saving, setSaving] = useState(false)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('googleConnected') === 'true') {
+      window.history.replaceState({}, '', window.location.pathname)
+      return 'Google account connected successfully!'
+    }
+    return null
+  })
 
   useEffect(() => {
     if (!isLoaded || !orgId) return
@@ -58,20 +65,12 @@ export default function OrgLandingPage() {
     fetchMeetings()
   }, [isLoaded, orgId, getToken])
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    if (params.get('googleConnected') === 'true') {
-      window.history.replaceState({}, '', window.location.pathname)
-      setSuccessMessage('Google account connected successfully!')
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
   const createAgenda = async () => {
     try {
       const token = await getToken()
       setAuthToken(token)
       const res = await api.post(`/api/v1/organizations/${orgId}/meetings`, {
-        meetingDate: new Date().toISOString()
+        meetingDate: new Date().toISOString(),
       })
       navigate(`/organizations/${orgId}/meetings/${res.data.id}`)
     } catch (err: unknown) {
@@ -88,7 +87,7 @@ export default function OrgLandingPage() {
       await api.post(`/api/v1/organizations/${orgId}/members`, {
         name: newMemberName,
         calling: newMemberCalling,
-        clerkUserId: ''
+        clerkUserId: '',
       })
       setNewMemberName('')
       setNewMemberCalling('')
@@ -178,7 +177,7 @@ export default function OrgLandingPage() {
                   </div>
                 )}
 
-                {meetings.map(meeting => (
+                {meetings.map((meeting) => (
                   <div
                     key={meeting.id}
                     className="card mb-3"
@@ -192,7 +191,7 @@ export default function OrgLandingPage() {
                             weekday: 'long',
                             year: 'numeric',
                             month: 'long',
-                            day: 'numeric'
+                            day: 'numeric',
                           })}
                         </h6>
                         <small className="text-muted">
@@ -230,7 +229,7 @@ export default function OrgLandingPage() {
                         <input
                           className="form-control form-control-sm"
                           value={newMemberName}
-                          onChange={e => setNewMemberName(e.target.value)}
+                          onChange={(e) => setNewMemberName(e.target.value)}
                           placeholder="Full name"
                         />
                       </div>
@@ -239,7 +238,7 @@ export default function OrgLandingPage() {
                         <input
                           className="form-control form-control-sm"
                           value={newMemberCalling}
-                          onChange={e => setNewMemberCalling(e.target.value)}
+                          onChange={(e) => setNewMemberCalling(e.target.value)}
                           placeholder="e.g. Relief Society President"
                         />
                       </div>
@@ -268,7 +267,7 @@ export default function OrgLandingPage() {
                   </div>
                 )}
 
-                {members.map(member => (
+                {members.map((member) => (
                   <div key={member.id} className="card mb-2">
                     <div className="card-body py-2 d-flex justify-content-between align-items-center">
                       <div>

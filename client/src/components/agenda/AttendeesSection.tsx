@@ -16,7 +16,7 @@ export default function AttendeesSection({ members }: Props) {
           No members yet. Add members from the organization page.
         </div>
       )}
-      {members.map(member => (
+      {members.map((member) => (
         <div key={member.id} className="card mb-2">
           <div className="card-body py-2 d-flex align-items-center gap-3">
             <input type="checkbox" className="form-check-input mt-0" defaultChecked />

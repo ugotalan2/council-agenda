@@ -44,7 +44,7 @@ export function useOrganization(orgId: string) {
 
         const [orgsRes, membersRes] = await Promise.all([
           api.get('/api/v1/organizations'),
-          api.get(`/api/v1/organizations/${orgId}/members`)
+          api.get(`/api/v1/organizations/${orgId}/members`),
         ])
 
         const found = orgsRes.data.find((o: Organization) => o.id === orgId)

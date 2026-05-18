@@ -3,7 +3,11 @@ interface Props {
   meetingId: string
   members: { id: string; name: string; calling: string }[]
 }
-export default function NotesSection({ orgId: _orgId, meetingId: _meetingId, members: _members }: Props) {
+export default function NotesSection({
+  orgId: _orgId,
+  meetingId: _meetingId,
+  members: _members,
+}: Props) {
   return (
     <div>
       <h5 className="mb-3">Meeting Notes</h5>

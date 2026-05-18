@@ -61,7 +61,7 @@ export default function AgendaEditorPage() {
         setAuthToken(token)
         const [meetingRes, membersRes] = await Promise.all([
           api.get(`/api/v1/organizations/${orgId}/meetings/${meetingId}`),
-          api.get(`/api/v1/organizations/${orgId}/members`)
+          api.get(`/api/v1/organizations/${orgId}/members`),
         ])
         setMeeting(meetingRes.data)
         setExportUrl(meetingRes.data.googleDocUrl ?? null)
@@ -86,7 +86,7 @@ export default function AgendaEditorPage() {
       setAuthToken(token)
       const combined = new Date(`${meetingDate}T${meetingTime}:00`)
       await api.put(`/api/v1/organizations/${orgId}/meetings/${meetingId}`, {
-        meetingDate: combined.toISOString()
+        meetingDate: combined.toISOString(),
       })
     } finally {
       setSavingDate(false)
@@ -98,12 +98,10 @@ export default function AgendaEditorPage() {
     try {
       const token = await getToken()
       setAuthToken(token)
-      const res = await api.post(
-        `/api/v1/organizations/${orgId}/meetings/${meetingId}/export`
-      )
+      const res = await api.post(`/api/v1/organizations/${orgId}/meetings/${meetingId}/export`)
       setExportUrl(res.data.url)
       window.open(res.data.url, '_blank')
-    } catch (err) {
+    } catch (_err) {
       setError('Export to Google Doc failed')
     } finally {
       setExporting(false)
@@ -112,7 +110,10 @@ export default function AgendaEditorPage() {
 
   const formattedDate = meeting
     ? new Date(meeting.meetingDate).toLocaleDateString('en-US', {
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
       })
     : ''
 
@@ -121,11 +122,7 @@ export default function AgendaEditorPage() {
 
   return (
     <div className="min-vh-100 bg-light">
-      <TopNav
-        title={formattedDate}
-        backTo={`/organizations/${orgId}`}
-        backLabel="Agendas"
-      />
+      <TopNav title={formattedDate} backTo={`/organizations/${orgId}`} backLabel="Agendas" />
 
       {/* Meeting date/time bar */}
       <div className="bg-white border-bottom px-3 py-2">
@@ -137,7 +134,7 @@ export default function AgendaEditorPage() {
               className="form-control form-control-sm"
               style={{ width: 'auto' }}
               value={meetingDate}
-              onChange={e => setMeetingDate(e.target.value)}
+              onChange={(e) => setMeetingDate(e.target.value)}
             />
           </div>
           <div className="d-flex align-items-center gap-2">
@@ -147,7 +144,7 @@ export default function AgendaEditorPage() {
               className="form-control form-control-sm"
               style={{ width: 'auto' }}
               value={meetingTime}
-              onChange={e => setMeetingTime(e.target.value)}
+              onChange={(e) => setMeetingTime(e.target.value)}
             />
           </div>
           <button
@@ -158,7 +155,9 @@ export default function AgendaEditorPage() {
             {savingDate ? 'Saving...' : 'Save'}
           </button>
           <div className="ms-auto d-flex align-items-center gap-2">
-            <span className={`badge ${meeting?.status === 'published' ? 'bg-success' : 'bg-secondary'}`}>
+            <span
+              className={`badge ${meeting?.status === 'published' ? 'bg-success' : 'bg-secondary'}`}
+            >
               {meeting?.status}
             </span>
             {exportUrl && (
@@ -188,7 +187,7 @@ export default function AgendaEditorPage() {
           className="d-none d-md-flex flex-column bg-white border-end py-3"
           style={{ width: 180, minWidth: 180 }}
         >
-          {SECTIONS.map(section => (
+          {SECTIONS.map((section) => (
             <button
               key={section.id}
               className={`btn btn-link text-start px-3 py-2 text-decoration-none ${
@@ -207,53 +206,27 @@ export default function AgendaEditorPage() {
         {/* Main content */}
         <div className="flex-grow-1 p-3 p-md-4" style={{ maxWidth: 800 }}>
           {activeSection === 'attendees' && (
-            <AttendeesSection
-              orgId={orgId!}
-              meetingId={meetingId!}
-              members={members}
-            />
+            <AttendeesSection orgId={orgId!} meetingId={meetingId!} members={members} />
           )}
           {activeSection === 'handbook' && (
-            <HandbookSection
-              orgId={orgId!}
-              meetingId={meetingId!}
-            />
+            <HandbookSection orgId={orgId!} meetingId={meetingId!} />
           )}
           {activeSection === 'discussion' && (
-            <DiscussionSection
-              orgId={orgId!}
-              meetingId={meetingId!}
-            />
+            <DiscussionSection orgId={orgId!} meetingId={meetingId!} />
           )}
           {activeSection === 'followup' && (
-            <FollowUpSection
-              orgId={orgId!}
-              meetingId={meetingId!}
-              members={members}
-            />
+            <FollowUpSection orgId={orgId!} meetingId={meetingId!} members={members} />
           )}
           {activeSection === 'notes' && (
-            <NotesSection
-              orgId={orgId!}
-              meetingId={meetingId!}
-              members={members}
-            />
+            <NotesSection orgId={orgId!} meetingId={meetingId!} members={members} />
           )}
-          {activeSection === 'prep' && (
-            <PrepFocusSection
-              orgId={orgId!}
-              meetingId={meetingId!}
-            />
-          )}
+          {activeSection === 'prep' && <PrepFocusSection orgId={orgId!} meetingId={meetingId!} />}
         </div>
       </div>
 
       {/* Mobile bottom nav */}
-      <div
-        className="d-md-none fixed-bottom bg-white border-top d-flex"
-        style={{ zIndex: 1000 }}
-      >
-        {SECTIONS.map(section => (
+      <div className="d-md-none fixed-bottom bg-white border-top d-flex" style={{ zIndex: 1000 }}>
+        {SECTIONS.map((section) => (
           <button
             key={section.id}
             className={`btn btn-link flex-grow-1 py-2 text-decoration-none d-flex flex-column align-items-center ${

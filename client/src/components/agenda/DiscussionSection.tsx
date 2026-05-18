@@ -1,4 +1,7 @@
-interface Props { orgId: string; meetingId: string }
+interface Props {
+  orgId: string
+  meetingId: string
+}
 export default function DiscussionSection({ orgId: _orgId, meetingId: _meetingId }: Props) {
   return (
     <div>

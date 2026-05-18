@@ -26,9 +26,7 @@ export default function TopNav({ title, subtitle, backTo, backLabel }: TopNavPro
           )}
           <div>
             <span className="navbar-brand mb-0 fw-semibold">{title}</span>
-            {subtitle && (
-              <span className="text-muted small ms-2">{subtitle}</span>
-            )}
+            {subtitle && <span className="text-muted small ms-2">{subtitle}</span>}
           </div>
         </div>
         <UserButton />
