@@ -18,16 +18,16 @@ public class AgendaGeneratorService
         var org = await _db.Organizations.FindAsync(orgId)
             ?? throw new KeyNotFoundException("Organization not found");
 
-        var members = await _db.Members
-            .Where(m => m.OrganizationId == orgId && m.Active)
-            .OrderBy(m => m.Name)
+        var positions = await _db.OrgPositions
+            .Where(p => p.OrganizationId == orgId && p.IsStanding && p.IsRotationEligible && p.IsActive)
+            .OrderBy(p => p.DisplayOrder)
             .ToListAsync();
 
         var items = new List<AgendaItem>();
         int order = 0;
 
         // 1. Opening prayer
-        var openingPrayer = await AssignRotation(orgId, meetingId, members, "opening_prayer", order++);
+        var openingPrayer = await AssignRotation(orgId, meetingId, positions, "opening_prayer", order++);
         items.Add(openingPrayer);
 
         // 2. Conducting — fixed to bishop or rotated depending on org type
@@ -43,7 +43,7 @@ public class AgendaGeneratorService
         }
         else
         {
-            var conducting = await AssignRotation(orgId, meetingId, members, "conducting", order++);
+            var conducting = await AssignRotation(orgId, meetingId, positions, "conducting", order++);
             items.Add(conducting);
         }
 
@@ -115,7 +115,7 @@ public class AgendaGeneratorService
         }
 
         // 7. Closing prayer
-        var closingPrayer = await AssignRotation(orgId, meetingId, members, "closing_prayer", order++);
+        var closingPrayer = await AssignRotation(orgId, meetingId, positions, "closing_prayer", order++);
         items.Add(closingPrayer);
 
         // Save all items
@@ -129,34 +129,74 @@ public class AgendaGeneratorService
     }
 
     private async Task<AgendaItem> AssignRotation(
-        Guid orgId, Guid meetingId, List<Member> members, string rotationType, int order)
+        Guid orgId, Guid meetingId, List<OrgPosition> positions, string rotationType, int order)
     {
-        // Get the last person assigned for this rotation type
-        var lastLog = await _db.RotationLogs
+        // Get recent rotation logs for this org and type
+        var recentLogs = await _db.RotationLogs
             .Where(r => r.OrganizationId == orgId && r.RotationType == rotationType)
             .OrderByDescending(r => r.AssignedDate)
-            .FirstOrDefaultAsync();
+            .Take(positions.Count)
+            .ToListAsync();
 
-        Member nextMember;
+        // For handbook training, also exclude anyone who already has it today cross-org
+        List<Guid> excludedToday = new();
+        if (rotationType == "handbook_training")
+        {
+            var today = DateTime.UtcNow.Date;
+            excludedToday = await _db.RotationLogs
+                .Where(r => r.RotationType == "handbook_training"
+                    && r.AssignedDate.Date == today)
+                .Select(r => r.PositionId)
+                .ToListAsync();
+        }
+
+        // Find the last assigned position in this org
+        var lastLog = recentLogs.FirstOrDefault();
+        OrgPosition nextPosition;
 
         if (lastLog == null)
         {
-            // Nobody has gone yet — start with first member
-            nextMember = members.First();
+            // Nobody assigned yet — pick first eligible
+            nextPosition = positions
+                .Where(p => !excludedToday.Contains(p.Id))
+                .First();
         }
         else
         {
-            // Find the index of the last person and advance by one
-            var lastIndex = members.FindIndex(m => m.Id == lastLog.MemberId);
-            var nextIndex = (lastIndex + 1) % members.Count;
-            nextMember = members[nextIndex];
+            // Advance round-robin from last assigned, skipping excluded
+            var lastIndex = positions.FindIndex(p => p.Id == lastLog.PositionId);
+            var count = positions.Count;
+            OrgPosition? candidate = null;
+
+            for (int i = 1; i <= count; i++)
+            {
+                var checkIndex = (lastIndex + i) % count;
+                var checkPosition = positions[checkIndex];
+                if (!excludedToday.Contains(checkPosition.Id))
+                {
+                    candidate = checkPosition;
+                    break;
+                }
+            }
+
+            // Fallback to first if all excluded (shouldn't happen in practice)
+            nextPosition = candidate ?? positions.First();
         }
+
+        // Resolve display name — use mapped member name if available
+        var memberPosition = await _db.MemberPositions
+            .Include(mp => mp.Member)
+            .Where(mp => mp.PositionId == nextPosition.Id)
+            .OrderByDescending(mp => mp.EffectiveDate)
+            .FirstOrDefaultAsync();
+
+        var displayName = memberPosition?.Member?.Name ?? nextPosition.Title;
 
         // Log the rotation
         _db.RotationLogs.Add(new RotationLog
         {
             OrganizationId = orgId,
-            MemberId = nextMember.Id,
+            PositionId = nextPosition.Id,
             RotationType = rotationType,
             AssignedDate = DateTime.UtcNow
         });
@@ -166,7 +206,7 @@ public class AgendaGeneratorService
             MeetingId = meetingId,
             ItemType = rotationType,
             DisplayOrder = order,
-            Notes = nextMember.Name
+            Notes = displayName
         };
     }
 

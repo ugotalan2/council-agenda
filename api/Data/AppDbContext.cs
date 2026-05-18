@@ -25,6 +25,8 @@ public class AppDbContext : DbContext
     public DbSet<ResponsibilityCheckin> ResponsibilityCheckins => Set<ResponsibilityCheckin>();
     public DbSet<Invitation> Invitations => Set<Invitation>();
     public DbSet<InvitationOrganization> InvitationOrganizations => Set<InvitationOrganization>();
+    public DbSet<OrgPosition> OrgPositions => Set<OrgPosition>();
+    public DbSet<MemberPosition> MemberPositions => Set<MemberPosition>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -98,9 +100,12 @@ public class AppDbContext : DbContext
         {
             e.HasKey(r => r.Id);
             e.Property(r => r.Id).HasDefaultValueSql("gen_random_uuid()");
-            e.HasOne(r => r.Member)
-             .WithMany(m => m.RotationLogs)
-             .HasForeignKey(r => r.MemberId);
+            e.HasOne(r => r.Organization)
+            .WithMany()
+            .HasForeignKey(r => r.OrganizationId);
+            e.HasOne(r => r.Position)
+            .WithMany(p => p.RotationLogs)
+            .HasForeignKey(r => r.PositionId);
         });
 
         modelBuilder.Entity<MinistryArea>(e =>
@@ -146,7 +151,12 @@ public class AppDbContext : DbContext
             .HasForeignKey(a => a.MeetingId);
             e.HasOne(a => a.Member)
             .WithMany()
-            .HasForeignKey(a => a.MemberId);
+            .HasForeignKey(a => a.MemberId)
+            .IsRequired(false);
+            e.HasOne(a => a.Position)
+            .WithMany(p => p.AgendaAttendees)
+            .HasForeignKey(a => a.PositionId)
+            .IsRequired(false);
         });
 
         modelBuilder.Entity<AgendaNote>(e =>
@@ -222,6 +232,27 @@ public class AppDbContext : DbContext
             e.HasOne(i => i.Organization)
             .WithMany()
             .HasForeignKey(i => i.OrganizationId);
+        });
+
+        modelBuilder.Entity<OrgPosition>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.Property(p => p.Id).HasDefaultValueSql("gen_random_uuid()");
+            e.HasOne(p => p.Organization)
+            .WithMany(o => o.Positions)
+            .HasForeignKey(p => p.OrganizationId);
+        });
+
+        modelBuilder.Entity<MemberPosition>(e =>
+        {
+            e.HasKey(mp => mp.Id);
+            e.Property(mp => mp.Id).HasDefaultValueSql("gen_random_uuid()");
+            e.HasOne(mp => mp.Position)
+            .WithMany(p => p.MemberPositions)
+            .HasForeignKey(mp => mp.PositionId);
+            e.HasOne(mp => mp.Member)
+            .WithMany(m => m.MemberPositions)
+            .HasForeignKey(mp => mp.MemberId);
         });
     }
 }

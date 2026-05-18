@@ -206,7 +206,7 @@ export default function AgendaEditorPage() {
         {/* Main content */}
         <div className="flex-grow-1 p-3 p-md-4" style={{ maxWidth: 800 }}>
           {activeSection === 'attendees' && (
-            <AttendeesSection orgId={orgId!} meetingId={meetingId!} members={members} />
+            <AttendeesSection orgId={orgId!} meetingId={meetingId!} />
           )}
           {activeSection === 'handbook' && (
             <HandbookSection orgId={orgId!} meetingId={meetingId!} />

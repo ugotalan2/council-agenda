@@ -10,5 +10,5 @@ public class Member
     public bool Active { get; set; } = true;
     public Organization Organization { get; set; } = null!;
     public ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
-    public ICollection<RotationLog> RotationLogs { get; set; } = new List<RotationLog>();
+    public ICollection<MemberPosition> MemberPositions { get; set; } = new List<MemberPosition>();
 }

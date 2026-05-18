@@ -12,6 +12,7 @@ public class Organization
     public ICollection<Member> Members { get; set; } = new List<Member>();
     public ICollection<Attachment> Attachments { get; set; } = new List<Attachment>();
     public ICollection<RecurringResponsibility> RecurringResponsibilities { get; set; } = new List<RecurringResponsibility>();
+    public ICollection<OrgPosition> Positions { get; set; } = new List<OrgPosition>();
     public string? GoogleDriveFolderId { get; set; }
     public string? GoogleRefreshToken { get; set; }
 }

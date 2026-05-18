@@ -81,6 +81,23 @@ public class OrganizationService : IOrganizationService
 
         await _db.SaveChangesAsync();
 
+        if (DefaultPositions.ByOrgType.TryGetValue(org.OrgType, out var positions))
+        {
+            var orgPositions = positions.Select(p => new OrgPosition
+            {
+                OrganizationId = org.Id,
+                Title = p.Title,
+                IsStanding = p.IsStanding,
+                IsGuestDefault = p.IsGuestDefault,
+                IsRotationEligible = p.IsRotationEligible,
+                DisplayOrder = p.Order,
+                OrgTypeScope = org.OrgType
+            }).ToList();
+
+            _db.OrgPositions.AddRange(orgPositions);
+            await _db.SaveChangesAsync();
+        }
+
         return new OrganizationResponse(
             org.Id,
             org.Name,

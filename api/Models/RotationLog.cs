@@ -4,8 +4,9 @@ public class RotationLog
 {
     public Guid Id { get; set; }
     public Guid OrganizationId { get; set; }
-    public Guid MemberId { get; set; }
+    public Guid PositionId { get; set; }
     public string RotationType { get; set; } = string.Empty; // prayer, training, conducting
     public DateTime AssignedDate { get; set; }
-    public Member Member { get; set; } = null!;
+    public Organization Organization { get; set; } = null!;
+    public OrgPosition Position { get; set; } = null!;
 }
