@@ -113,7 +113,7 @@ export default function OrgLandingPage() {
   const connectGoogle = () => {
     const url = `${import.meta.env.VITE_API_URL}/api/v1/google/connect/${orgId}`
     console.log('Connecting to:', url)
-    window.location.href = url
+    // window.location.href = url
   }
 
   if (loading) return <LoadingSpinner />
