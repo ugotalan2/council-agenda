@@ -3,6 +3,8 @@
 ## Known Bugs to Fix
 - Clerk is still on dev keys (no custom domain) — intentional for now
 - Local deploys use native publish + simple Dockerfile; CI uses Dockerfile.multistage
+- Timezone is hardcoded to America/Chicago in AgendaExportService — should be stored in OrganizationSettings long term
+- GoogleDriveFolderId must be manually set in DB for new orgs until Settings UI is built
 
 ## Build Priorities
 1. Wire FollowUpSection — show open assignments from prior meetings (backend exists)
