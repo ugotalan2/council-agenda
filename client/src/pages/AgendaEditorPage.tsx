@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '@clerk/clerk-react'
 import api, { setAuthToken } from '../lib/api'
@@ -52,6 +52,8 @@ export default function AgendaEditorPage() {
   const [savingDate, setSavingDate] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [exportUrl, setExportUrl] = useState<string | null>(null)
+  const originalDate = useRef('')
+  const originalTime = useRef('')
 
   useEffect(() => {
     if (!isLoaded || !orgId || !meetingId) return
@@ -67,8 +69,13 @@ export default function AgendaEditorPage() {
         setExportUrl(meetingRes.data.googleDocUrl ?? null)
         setMembers(membersRes.data)
         const date = new Date(meetingRes.data.meetingDate)
-        setMeetingDate(date.toISOString().split('T')[0])
-        setMeetingTime(date.toTimeString().slice(0, 5))
+        // Use local date parts to avoid UTC offset shifting the date
+        const localDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+        const localTime = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+        setMeetingDate(localDate)
+        setMeetingTime(localTime)
+        originalDate.current = localDate
+        originalTime.current = localTime
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'An error occurred')
       } finally {
@@ -80,14 +87,22 @@ export default function AgendaEditorPage() {
 
   const saveMeetingDate = async () => {
     if (!meetingDate) return
+    // Don't save if nothing changed
+    if (meetingDate === originalDate.current && meetingTime === originalTime.current) return
+
     setSavingDate(true)
     try {
       const token = await getToken()
       setAuthToken(token)
-      const combined = new Date(`${meetingDate}T${meetingTime}:00`)
+      const [year, month, day] = meetingDate.split('-').map(Number)
+      const [hours, minutes] = meetingTime.split(':').map(Number)
+      const combined = new Date(year, month - 1, day, hours, minutes, 0)
       await api.put(`/api/v1/organizations/${orgId}/meetings/${meetingId}`, {
         meetingDate: combined.toISOString(),
       })
+      // Update refs to new saved values
+      originalDate.current = meetingDate
+      originalTime.current = meetingTime
     } finally {
       setSavingDate(false)
     }
@@ -135,6 +150,7 @@ export default function AgendaEditorPage() {
               style={{ width: 'auto' }}
               value={meetingDate}
               onChange={(e) => setMeetingDate(e.target.value)}
+              onBlur={saveMeetingDate}
             />
           </div>
           <div className="d-flex align-items-center gap-2">
@@ -145,15 +161,10 @@ export default function AgendaEditorPage() {
               style={{ width: 'auto' }}
               value={meetingTime}
               onChange={(e) => setMeetingTime(e.target.value)}
+              onBlur={saveMeetingDate}
             />
           </div>
-          <button
-            className="btn btn-outline-primary btn-sm"
-            onClick={saveMeetingDate}
-            disabled={savingDate}
-          >
-            {savingDate ? 'Saving...' : 'Save'}
-          </button>
+          {savingDate && <span className="text-muted small">Saving...</span>}
           <div className="ms-auto d-flex align-items-center gap-2">
             <span
               className={`badge ${meeting?.status === 'published' ? 'bg-success' : 'bg-secondary'}`}

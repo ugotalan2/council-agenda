@@ -97,6 +97,19 @@ export default function OrgLandingPage() {
     }
   }
 
+  const deleteMeeting = async (e: React.MouseEvent, meetingId: string) => {
+    e.stopPropagation() // prevent navigating to the meeting
+    if (!window.confirm('Delete this agenda? This cannot be undone.')) return
+    try {
+      const token = await getToken()
+      setAuthToken(token)
+      await api.delete(`/api/v1/organizations/${orgId}/meetings/${meetingId}`)
+      setMeetings((prev) => prev.filter((m) => m.id !== meetingId))
+    } catch {
+      // ignore
+    }
+  }
+
   const connectGoogle = () => {
     window.location.href = `${import.meta.env.VITE_API_URL}/api/v1/google/connect/${orgId}`
   }
@@ -198,9 +211,22 @@ export default function OrgLandingPage() {
                           {meeting.agendaGenerated ? 'Agenda generated' : 'Draft'}
                         </small>
                       </div>
-                      <span className={`badge ${STATUS_BADGES[meeting.status] ?? 'bg-secondary'}`}>
-                        {meeting.status}
-                      </span>
+                      <div className="d-flex align-items-center gap-2">
+                        <span
+                          className={`badge ${STATUS_BADGES[meeting.status] ?? 'bg-secondary'}`}
+                        >
+                          {meeting.status}
+                        </span>
+                        {meeting.status !== 'published' && (
+                          <button
+                            className="btn btn-link btn-sm text-danger p-0"
+                            onClick={(e) => deleteMeeting(e, meeting.id)}
+                            title="Delete agenda"
+                          >
+                            🗑
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}

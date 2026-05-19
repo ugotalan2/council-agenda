@@ -14,6 +14,20 @@ interface Attendee {
   guestLabel: string | null
 }
 
+interface AgendaItem {
+  id: string
+  itemType: string
+  displayName: string | null
+  notes: string | null
+  positionId: string | null
+}
+
+interface RotationHistory {
+  positionId: string
+  rotationType: string
+  lastAssigned: string | null
+}
+
 interface GuestPosition {
   id: string
   title: string
@@ -32,35 +46,66 @@ interface Props {
   meetingId: string
 }
 
+const ROTATION_LABELS: Record<string, string> = {
+  opening_prayer: 'Opening Prayer',
+  handbook_training: 'Handbook Training',
+  closing_prayer: 'Closing Prayer',
+}
+
 export default function AttendeesSection({ orgId, meetingId }: Props) {
   const { getToken } = useAuth()
   const [attendees, setAttendees] = useState<Attendee[]>([])
   const [guestPositions, setGuestPositions] = useState<GuestPosition[]>([])
+  const [agendaItems, setAgendaItems] = useState<AgendaItem[]>([])
+  const [rotationHistory, setRotationHistory] = useState<RotationHistory[]>([])
   const [loading, setLoading] = useState(true)
+  const [generating, setGenerating] = useState(false)
   const [saving, setSaving] = useState<string | null>(null)
   const [showAddGuest, setShowAddGuest] = useState(false)
   const [customGuestName, setCustomGuestName] = useState('')
   const [addingGuest, setAddingGuest] = useState(false)
 
+  const fetchData = async () => {
+    try {
+      const token = await getToken()
+      setAuthToken(token)
+      const [attendeesRes, positionsRes, itemsRes, historyRes] = await Promise.all([
+        api.get(`/api/v1/organizations/${orgId}/meetings/${meetingId}/attendees`),
+        api.get(`/api/v1/organizations/${orgId}/positions`),
+        api.get(`/api/v1/organizations/${orgId}/meetings/${meetingId}/agenda-items`),
+        api.get(`/api/v1/organizations/${orgId}/meetings/${meetingId}/rotation-history`),
+      ])
+      setAttendees(attendeesRes.data)
+      setGuestPositions(positionsRes.data.filter((p: PositionResponse) => p.isGuestDefault))
+      setAgendaItems(itemsRes.data)
+      setRotationHistory(historyRes.data)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (!orgId || !meetingId) return
-    const fetch = async () => {
-      try {
-        const token = await getToken()
-        setAuthToken(token)
-        const [attendeesRes, positionsRes] = await Promise.all([
-          api.get(`/api/v1/organizations/${orgId}/meetings/${meetingId}/attendees`),
-          api.get(`/api/v1/organizations/${orgId}/positions`),
-        ])
-        setAttendees(attendeesRes.data)
-        // Only guest-default positions for the invite dropdown
-        setGuestPositions(positionsRes.data.filter((p: PositionResponse) => p.isGuestDefault))
-      } finally {
-        setLoading(false)
-      }
+    fetchData()
+  }, [orgId, meetingId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const generateAssignments = async () => {
+    setGenerating(true)
+    try {
+      const token = await getToken()
+      setAuthToken(token)
+      await api.post(`/api/v1/organizations/${orgId}/meetings/${meetingId}/generate`)
+      // Reload agenda items and history after generation
+      const [itemsRes, historyRes] = await Promise.all([
+        api.get(`/api/v1/organizations/${orgId}/meetings/${meetingId}/agenda-items`),
+        api.get(`/api/v1/organizations/${orgId}/meetings/${meetingId}/rotation-history`),
+      ])
+      setAgendaItems(itemsRes.data)
+      setRotationHistory(historyRes.data)
+    } finally {
+      setGenerating(false)
     }
-    fetch()
-  }, [orgId, meetingId, getToken])
+  }
 
   const toggleAttendance = async (attendee: Attendee) => {
     if (!attendee.positionId) return
@@ -153,6 +198,18 @@ export default function AttendeesSection({ orgId, meetingId }: Props) {
     }
   }
 
+  const getLastAssigned = (positionId: string, rotationType: string) => {
+    const log = rotationHistory.find(
+      (h) => h.positionId === positionId && h.rotationType === rotationType
+    )
+    if (!log?.lastAssigned) return 'Never assigned'
+    return new Date(log.lastAssigned).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    })
+  }
+
   if (loading) return <LoadingSpinner />
 
   const standing = attendees.filter((a) => a.isStanding)
@@ -161,6 +218,9 @@ export default function AttendeesSection({ orgId, meetingId }: Props) {
   const availableGuestDefaults = guestPositions.filter(
     (p) => !alreadyAddedGuests.includes(p.title.toLowerCase())
   )
+  const hasAssignments = agendaItems.some((i) =>
+    ['opening_prayer', 'handbook_training', 'closing_prayer'].includes(i.itemType)
+  )
 
   return (
     <div>
@@ -168,6 +228,53 @@ export default function AttendeesSection({ orgId, meetingId }: Props) {
       <p className="text-muted small mb-3">
         Check off who is present. Rotation assignments update automatically.
       </p>
+
+      {/* Meeting Assignments */}
+      <div className="card mb-3">
+        <div className="card-header small fw-semibold text-muted py-2 d-flex justify-content-between align-items-center">
+          <span>Meeting Assignments</span>
+          {!hasAssignments && (
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={generateAssignments}
+              disabled={generating}
+            >
+              {generating ? 'Generating...' : '⚡ Generate'}
+            </button>
+          )}
+        </div>
+        {!hasAssignments ? (
+          <div className="card-body text-center py-4">
+            <p className="text-muted small mb-0">
+              No assignments yet. Click Generate to auto-assign based on rotation history.
+            </p>
+          </div>
+        ) : (
+          <ul className="list-group list-group-flush">
+            {['opening_prayer', 'handbook_training', 'closing_prayer'].map((type) => {
+              const item = agendaItems.find((i) => i.itemType === type)
+              if (!item) return null
+              return (
+                <li key={type} className="list-group-item py-2">
+                  <div className="d-flex justify-content-between align-items-start">
+                    <span className="text-muted small">{ROTATION_LABELS[type]}</span>
+                    <div className="text-end">
+                      <div className="fw-semibold small">
+                        {item.displayName || item.notes || '—'}
+                      </div>
+                      {
+                        <div className="text-muted" style={{ fontSize: 11 }}>
+                          Last: {getLastAssigned(item.positionId, type)}
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </div>
 
       {/* Standing positions */}
       <div className="card mb-3">
@@ -245,7 +352,6 @@ export default function AttendeesSection({ orgId, meetingId }: Props) {
         </div>
         {showAddGuest && (
           <div className="card-body">
-            {/* Default guest positions as quick-add buttons */}
             {availableGuestDefaults.length > 0 && (
               <div className="mb-3">
                 <p className="small text-muted mb-2">Common invitees:</p>
@@ -263,7 +369,6 @@ export default function AttendeesSection({ orgId, meetingId }: Props) {
                 </div>
               </div>
             )}
-            {/* Custom name input */}
             <div className="d-flex gap-2">
               <input
                 type="text"

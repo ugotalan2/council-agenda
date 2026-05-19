@@ -45,6 +45,20 @@ namespace CouncilAgendaApi.Services
 				.OrderBy(a => a.Meeting.MeetingDate)
 				.ToListAsync();
 
+            var attendees = await _db.AgendaAttendees
+                .Include(a => a.Position)
+                    .ThenInclude(p => p!.MemberPositions)
+                        .ThenInclude(mp => mp.Member)
+                .Where(a => a.MeetingId == meetingId && a.Attending)
+                .ToListAsync();
+            
+            var agendaItems = await _db.AgendaItems
+                .Include(a => a.Position)
+                    .ThenInclude(p => p!.MemberPositions)
+                        .ThenInclude(mp => mp.Member)
+                .Where(a => a.MeetingId == meetingId)
+                .ToListAsync();
+
             var refreshToken = org.GoogleRefreshToken
                 ?? throw new InvalidOperationException("Google account not connected for this organization. Please connect via Settings.");
 
@@ -54,7 +68,7 @@ namespace CouncilAgendaApi.Services
             var meetingDateLocal = meeting.MeetingDate.ToLocalTime();
 			var title = $"{org.Name} — {meetingDateLocal:MMMM d, yyyy}";
             
-            var requests = BuildDocRequests(org, meeting, assignments, priorAssignments, meetingDateLocal);
+            var requests = BuildDocRequests(org, meeting, assignments, priorAssignments, attendees, agendaItems, meetingDateLocal);
             
             // Pass refresh token to doc service
             var docUrl = await _googleDocService.CreateAgendaDocAsync(title, requests, folderId, refreshToken);
@@ -69,18 +83,37 @@ namespace CouncilAgendaApi.Services
             Models.Meeting meeting,
             List<Models.Assignment> assignments,
             List<Models.Assignment> priorAssignments,
+            List<Models.AgendaAttendee> attendees,
+            List<Models.AgendaItem> agendaItems,
             DateTime meetingDateLocal)
         {
             var builder = new DocBuilder();
 
+            // grab the assignments
+            var openingPrayer = GetAssignedDisplayName(agendaItems, "opening_prayer");
+            var handbookTrainer = GetAssignedDisplayName(agendaItems, "handbook_training");
+            var closingPrayer = GetAssignedDisplayName(agendaItems, "closing_prayer");
+
             // Title
             builder.AddText($"{org.Name.ToUpper()} — {meetingDateLocal:MMMM d, yyyy}\n", "TITLE");
             builder.AddText($"{meetingDateLocal:dddd, h:mm tt}\n", "SUBTITLE");
-            builder.AddText("Conducting: Bishop\n\n", "SUBTITLE");
+            builder.AddText("Conducting: Bishop\n", "SUBTITLE");
+
+            // Special guests — only show if any guests were added
+            var guests = attendees.Where(a => a.GuestLabel != null).ToList();
+            if (guests.Any())
+            {
+                builder.AddHeading("SPECIAL GUESTS\n");
+                foreach (var guest in guests)
+                {
+                    builder.AddBullet($"{guest.GuestLabel}\n");
+                }
+                builder.AddText("\n", "NORMAL");
+            }
 
             // Opening
             builder.AddHeading("OPENING\n");
-            builder.AddText("Prayer: \n\n", "NORMAL");
+            builder.AddText($"Prayer: {openingPrayer}\n\n", "NORMAL");
 
             // Follow-up from prior meetings
             if (priorAssignments.Any())
@@ -96,7 +129,7 @@ namespace CouncilAgendaApi.Services
 
             // Handbook Training
             builder.AddHeading("HANDBOOK TRAINING\n");
-            builder.AddText("Assigned: \n", "NORMAL");
+            builder.AddText($"Assigned: {handbookTrainer}\n", "NORMAL");
             builder.AddText("Section: \n", "NORMAL");
             builder.AddText("Discussion Question: \n\n", "NORMAL");
 
@@ -124,9 +157,27 @@ namespace CouncilAgendaApi.Services
 
             // Closing
             builder.AddHeading("CLOSING\n");
-            builder.AddText("Prayer: \n", "NORMAL");
+            builder.AddText($"Prayer: {closingPrayer}\n", "NORMAL");
 
             return builder.Build();
+        }
+
+        private string GetAssignedDisplayName(List<Models.AgendaItem> agendaItems, string rotationType)
+        {
+            var item = agendaItems.FirstOrDefault(a => a.ItemType == rotationType);
+            if (item == null) return "";
+
+            // Use mapped member name if position is linked
+            if (item.Position != null)
+            {
+                var memberName = item.Position.MemberPositions
+                    .OrderByDescending(mp => mp.EffectiveDate)
+                    .Select(mp => mp.Member?.Name)
+                    .FirstOrDefault();
+                return memberName ?? item.Position.Title;
+            }
+
+            return item.Notes ?? "";
         }
     }
 

@@ -6,6 +6,7 @@ using CouncilAgendaApi.Services;
 using CouncilAgendaApi.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace CouncilAgendaApi.Controllers;
 
@@ -103,5 +104,89 @@ public class MeetingsController : BaseController
         {
             return BadRequest(new { message = ex.Message });
         }
+    }
+
+    [HttpGet("{meetingId}/agenda-items")]
+    [Authorize(Policy = "OrgViewer")]
+    public async Task<IActionResult> GetAgendaItems(Guid orgId, Guid meetingId)
+    {
+        var meeting = await _meetingService.GetMeeting(orgId, meetingId);
+        if (meeting == null) return NotFound();
+
+        var items = await _db.AgendaItems
+            .Where(a => a.MeetingId == meetingId)
+            .Include(a => a.Position)
+                .ThenInclude(p => p!.MemberPositions)
+                    .ThenInclude(mp => mp.Member)
+            .Include(a => a.HandbookSection)
+            .OrderBy(a => a.DisplayOrder)
+            .Select(a => new
+            {
+                a.Id,
+                a.ItemType,
+                a.DisplayOrder,
+                a.Notes,
+                a.PositionId,
+                DisplayName = a.Position != null
+                    ? a.Position.MemberPositions
+                        .OrderByDescending(mp => mp.EffectiveDate)
+                        .Select(mp => mp.Member.Name)
+                        .FirstOrDefault() ?? a.Position.Title
+                    : a.Notes,
+                HandbookSection = a.HandbookSection == null ? null : new
+                {
+                    a.HandbookSection.Id,
+                    a.HandbookSection.Title,
+                    a.HandbookSection.Chapter,
+                    a.HandbookSection.Section
+                }
+            })
+            .ToListAsync();
+
+        return Ok(items);
+    }
+
+    [HttpGet("{meetingId}/rotation-history")]
+    [Authorize(Policy = "OrgViewer")]
+    public async Task<IActionResult> GetRotationHistory(Guid orgId, Guid meetingId)
+    {
+        var meeting = await _db.Meetings
+            .FirstOrDefaultAsync(m => m.Id == meetingId && m.OrganizationId == orgId);
+        if (meeting == null) return NotFound();
+
+        var meetingDate = meeting.MeetingDate.Date;
+
+        var positions = await _db.OrgPositions
+            .Where(p => p.OrganizationId == orgId && p.IsStanding && p.IsActive)
+            .ToListAsync();
+
+        var positionIds = positions.Select(p => p.Id).ToList();
+        var rotationTypes = new[] { "opening_prayer", "closing_prayer", "handbook_training" };
+        var history = new List<object>();
+
+        foreach (var type in rotationTypes)
+        {
+            var logs = await _db.RotationLogs
+                .Where(r => r.OrganizationId == orgId
+                    && r.RotationType == type
+                    && positionIds.Contains(r.PositionId)
+                    && r.AssignedDate.Date != meetingDate) // exclude current meeting
+                .OrderByDescending(r => r.AssignedDate)
+                .Take(positions.Count)
+                .ToListAsync();
+
+            foreach (var position in positions)
+            {
+                var lastLog = logs.FirstOrDefault(l => l.PositionId == position.Id);
+                history.Add(new
+                {
+                    PositionId = position.Id,
+                    RotationType = type,
+                    LastAssigned = lastLog?.AssignedDate
+                });
+            }
+        }
+
+        return Ok(history);
     }
 }

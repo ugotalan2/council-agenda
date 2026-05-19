@@ -15,6 +15,15 @@ public class AgendaGeneratorService
 
     public async Task<List<AgendaItem>> GenerateAgenda(Guid orgId, Guid meetingId)
     {
+        
+        var meeting = await _db.Meetings.FindAsync(meetingId)
+            ?? throw new KeyNotFoundException("Meeting not found");
+
+        var meetingDate = meeting.MeetingDate;
+
+        // Track positions assigned this meeting to avoid same person for opening + closing
+        var assignedThisMeeting = new List<Guid>();
+
         var org = await _db.Organizations.FindAsync(orgId)
             ?? throw new KeyNotFoundException("Organization not found");
 
@@ -22,13 +31,19 @@ public class AgendaGeneratorService
             .Where(p => p.OrganizationId == orgId && p.IsStanding && p.IsRotationEligible && p.IsActive)
             .OrderBy(p => p.DisplayOrder)
             .ToListAsync();
+        
+        // Shuffle so rotation doesn't always follow display order
+        var rng = new Random();
+        positions = positions.OrderBy(_ => rng.Next()).ToList();
 
         var items = new List<AgendaItem>();
         int order = 0;
 
         // 1. Opening prayer
-        var openingPrayer = await AssignRotation(orgId, meetingId, positions, "opening_prayer", order++);
+        var openingPrayer = await AssignRotation(orgId, meetingId, positions, "opening_prayer", order++, meetingDate, assignedThisMeeting);
         items.Add(openingPrayer);
+        if (openingPrayer.PositionId.HasValue)
+            assignedThisMeeting.Add(openingPrayer.PositionId.Value);
 
         // 2. Conducting — fixed to bishop or rotated depending on org type
         if (!org.ConductingRotates)
@@ -43,14 +58,11 @@ public class AgendaGeneratorService
         }
         else
         {
-            var conducting = await AssignRotation(orgId, meetingId, positions, "conducting", order++);
+            var conducting = await AssignRotation(orgId, meetingId, positions, "conducting", order++, meetingDate);
             items.Add(conducting);
         }
 
         // 3. Carry forward open assignments due by this meeting
-        var meeting = await _db.Meetings.FindAsync(meetingId)
-            ?? throw new KeyNotFoundException("Meeting not found");
-
         var dueAssignments = await _db.Assignments
             .Where(a => a.Meeting.OrganizationId == orgId
                 && a.Status == "open"
@@ -71,6 +83,13 @@ public class AgendaGeneratorService
 
         // 4. Ministry area focus
         var ministryArea = await GetNextMinistryArea(orgId);
+
+        // Always assign handbook training rotation regardless of section availability
+        var handbookTraining = await AssignRotation(orgId, meetingId, positions, "handbook_training", order++, meetingDate, assignedThisMeeting);
+        items.Add(handbookTraining);
+        if (handbookTraining.PositionId.HasValue)
+            assignedThisMeeting.Add(handbookTraining.PositionId.Value);
+
         if (ministryArea != null)
         {
             items.Add(new AgendaItem
@@ -80,22 +99,14 @@ public class AgendaGeneratorService
                 DisplayOrder = order++,
                 Notes = $"Ministry focus: {ministryArea.Name}"
             });
-
             ministryArea.LastFocused = DateTime.UtcNow;
 
-            // 5. Handbook section for this ministry area
             var handbookSection = await GetNextHandbookSection(orgId, ministryArea.Id);
             if (handbookSection != null)
             {
-                items.Add(new AgendaItem
-                {
-                    MeetingId = meetingId,
-                    ItemType = "handbook_training",
-                    DisplayOrder = order++,
-                    HandbookSectionId = handbookSection.Id,
-                    Notes = $"{handbookSection.Chapter}.{handbookSection.Section} - {handbookSection.Title}"
-                });
-
+                // Update the handbook training item with the section info
+                handbookTraining.HandbookSectionId = handbookSection.Id;
+                handbookTraining.Notes = $"{handbookSection.Chapter}.{handbookSection.Section} - {handbookSection.Title}";
                 handbookSection.LastUsed = DateTime.UtcNow;
             }
         }
@@ -115,8 +126,10 @@ public class AgendaGeneratorService
         }
 
         // 7. Closing prayer
-        var closingPrayer = await AssignRotation(orgId, meetingId, positions, "closing_prayer", order++);
+        var closingPrayer = await AssignRotation(orgId, meetingId, positions, "closing_prayer", order++, meetingDate, assignedThisMeeting);
         items.Add(closingPrayer);
+        if (closingPrayer.PositionId.HasValue)
+            assignedThisMeeting.Add(closingPrayer.PositionId.Value);
 
         // Save all items
         _db.AgendaItems.AddRange(items);
@@ -129,41 +142,40 @@ public class AgendaGeneratorService
     }
 
     private async Task<AgendaItem> AssignRotation(
-        Guid orgId, Guid meetingId, List<OrgPosition> positions, string rotationType, int order)
+        Guid orgId, Guid meetingId, List<OrgPosition> positions, 
+        string rotationType, int order,  DateTime meetingDate,
+        List<Guid>? excludePositionIds = null)
     {
-        // Get recent rotation logs for this org and type
         var recentLogs = await _db.RotationLogs
             .Where(r => r.OrganizationId == orgId && r.RotationType == rotationType)
             .OrderByDescending(r => r.AssignedDate)
             .Take(positions.Count)
             .ToListAsync();
 
-        // For handbook training, also exclude anyone who already has it today cross-org
-        List<Guid> excludedToday = new();
+        List<Guid> excludedToday = excludePositionIds?.ToList() ?? new();
+
         if (rotationType == "handbook_training")
         {
-            var today = DateTime.UtcNow.Date;
-            excludedToday = await _db.RotationLogs
+            var meetingDay = meetingDate.Date;
+            var crossOrgExclusions = await _db.RotationLogs
                 .Where(r => r.RotationType == "handbook_training"
-                    && r.AssignedDate.Date == today)
+                    && r.AssignedDate.Date == meetingDay)
                 .Select(r => r.PositionId)
                 .ToListAsync();
+            excludedToday.AddRange(crossOrgExclusions);
         }
 
-        // Find the last assigned position in this org
         var lastLog = recentLogs.FirstOrDefault();
         OrgPosition nextPosition;
 
         if (lastLog == null)
         {
-            // Nobody assigned yet — pick first eligible
             nextPosition = positions
                 .Where(p => !excludedToday.Contains(p.Id))
                 .First();
         }
         else
         {
-            // Advance round-robin from last assigned, skipping excluded
             var lastIndex = positions.FindIndex(p => p.Id == lastLog.PositionId);
             var count = positions.Count;
             OrgPosition? candidate = null;
@@ -179,11 +191,10 @@ public class AgendaGeneratorService
                 }
             }
 
-            // Fallback to first if all excluded (shouldn't happen in practice)
-            nextPosition = candidate ?? positions.First();
+            nextPosition = candidate ?? positions
+                .First(p => !excludedToday.Contains(p.Id));
         }
 
-        // Resolve display name — use mapped member name if available
         var memberPosition = await _db.MemberPositions
             .Include(mp => mp.Member)
             .Where(mp => mp.PositionId == nextPosition.Id)
@@ -192,13 +203,12 @@ public class AgendaGeneratorService
 
         var displayName = memberPosition?.Member?.Name ?? nextPosition.Title;
 
-        // Log the rotation
         _db.RotationLogs.Add(new RotationLog
         {
             OrganizationId = orgId,
             PositionId = nextPosition.Id,
             RotationType = rotationType,
-            AssignedDate = DateTime.UtcNow
+            AssignedDate = meetingDate
         });
 
         return new AgendaItem
@@ -206,7 +216,8 @@ public class AgendaGeneratorService
             MeetingId = meetingId,
             ItemType = rotationType,
             DisplayOrder = order,
-            Notes = displayName
+            Notes = displayName,
+            PositionId = nextPosition.Id
         };
     }
 

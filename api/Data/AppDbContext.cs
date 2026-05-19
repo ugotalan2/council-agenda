@@ -81,6 +81,10 @@ public class AppDbContext : DbContext
             e.HasOne(a => a.TopicBacklogItem)
              .WithMany()
              .HasForeignKey(a => a.TopicBacklogId);
+            e.HasOne(a => a.Position)
+             .WithMany()
+             .HasForeignKey(a => a.PositionId)
+             .IsRequired(false);
         });
 
         modelBuilder.Entity<Assignment>(e =>
