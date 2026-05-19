@@ -34,9 +34,30 @@ Deferred to V2: Family Council, Ward Youth Council, Presidency Meeting
 - `RecurringResponsibilities` — title, LCR URL, min/max weeks, last checked date, scoped to one org type
 - `ResponsibilityCheckins` — acknowledgment history
 - `Invitations` + `InvitationOrganization` — pending invites; one invite can grant access to multiple orgs
+- `OrgPositions` — org-scoped named positions (Bishop, EQP etc), seeded per org type on creation, IsStanding/IsGuestDefault/IsRotationEligible flags
+- `MemberPositions` — maps a Member to a Position with effective date
+- `AgendaAttendees` — updated: PositionId (nullable), GuestLabel (nullable), MemberId now nullable
+- `RotationLogs` — updated: PositionId replaces MemberId, AssignedDate uses meeting date not generation date
 
 ### Seed Data
 - `Data/DefaultResponsibilities.cs` seeds recurring responsibilities per org type on org creation
+
+## Google Drive Integration
+- Per-org OAuth2 refresh token stored on Organization.GoogleRefreshToken
+- Per-org folder ID stored on Organization.GoogleDriveFolderId  
+- Admin connects once via /api/v1/google/connect/{orgId}
+- Export creates formatted Google Doc in org folder, stores URL on Meeting.GoogleDocUrl
+- Google Cloud project: council-agenda (ugotalan account)
+- Service account approach abandoned — using OAuth2 with stored refresh token
+
+## Rotation Rules
+- 3 assignments per meeting: opening_prayer, closing_prayer, handbook_training
+- Opening and closing prayer cannot be assigned to same position in same meeting
+- Handbook training excluded cross-org on same calendar day
+- Round-robin with shuffle, history-aware
+- AssignedDate on RotationLog uses meeting date not generation date
+- Rotation history excludes current meeting date (shows previous meetings only)
+- Delete meeting cascades rotation log cleanup
 
 ## Business Rules
 

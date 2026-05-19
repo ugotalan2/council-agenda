@@ -15,10 +15,17 @@
 - Invitations system with Clerk SDK + multi-org invite (InvitationOrganization join)
 - Sync endpoint for pre-existing Clerk accounts
 - DefaultResponsibilities seeding
+- OrgPositionsController — CRUD + position mapping
+- AgendaAttendeesController — attendance per meeting, guest management
+- GoogleOAuthController — OAuth2 connect + callback, stores refresh token per org
+- AgendaExportService — assembles agenda, pushes to Google Doc via OAuth2
+- GoogleDocService — Google Docs/Drive API via per-org OAuth2 credentials
+- DefaultPositions.cs — seeds standing + guest positions per org type on creation
+- Rotation logic refactored to position-based (OrgPositions/RotationLogs)
+- AgendaGeneratorService updated — position-based rotation, meeting-date-aware, cross-org handbook exclusion, opening/closing prayer conflict prevention
 
 ### Schema Migrated, API Not Yet Built
 Models exist and are in the DbContext but no controllers/services/DTOs yet:
-- AgendaAttendee
 - AgendaNote
 - Attachment
 - RecurringResponsibility
@@ -38,16 +45,19 @@ Models exist and are in the DbContext but no controllers/services/DTOs yet:
 - Shared: ErrorAlert, LoadingSpinner
 - `useOrganization` hook
 - `api.ts` client
+- AttendeesSection.tsx — fully wired: standing positions, attendance toggle, guest invites, rotation assignments with last-assigned history, generate button
+- OrgLandingPage — delete meeting with confirmation (draft/generated only, not published)
+- AgendaEditorPage — export button, view doc button, auto-save date/time on blur
 
 ### Not Yet Built
-- MobileBottomNav, Sidebar layout components
 - useMeeting hook
-- Persisting attendee state
-- Auto-assign rotation logic in UI
-- AI question generation UI
+- HandbookSection wiring + AI question generation
+- DiscussionSection AI question generation UI
 - Follow-up carry-forward UI
-- Notes assignment creation
+- NotesSection auto-save + AI assignment extraction
 - Prep & Focus AI integration
+- MobileBottomNav, Sidebar layout components
+- OrganizationSettings UI
 - Attachments UI
 - Recurring responsibility surfacing
 

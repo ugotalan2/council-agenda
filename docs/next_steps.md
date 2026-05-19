@@ -1,25 +1,41 @@
 # Next Steps
 
 ## Known Bugs to Fix
-- local deploys still use the native publish + simple Dockerfile approach, while CI uses Dockerfile.multistage.
-1. **Names showing "Unknown" in People list** — `GetMyPeople` Clerk call returns null name properties for Google OAuth users; fall back to external account name
-2. **Role dropdown not re-rendering** — onChange fires but state mutation isn't creating new array reference; fix by creating new array
+- Clerk is still on dev keys (no custom domain) — intentional for now
+- Local deploys use native publish + simple Dockerfile; CI uses Dockerfile.multistage
 
-## Build Priorities (After Deploy)
-1. Persist attendee checkbox state to API (build AgendaAttendees controller/service/DTO)
-2. Auto-assign prayer/training rotation from checked attendees
-3. Wire HandbookSection.tsx to existing handbook controller + AI question generation
-4. Wire FollowUpSection.tsx to show open assignments from prior meetings
-5. Wire DiscussionSection.tsx to ministry areas + topic backlog (build TopicBacklogItem API)
-6. Build NotesSection.tsx wiring (AgendaNotes API needed)
-7. Build PrepFocusSection.tsx with OpenAI Prep assistant
-8. Attachments API + UI
-9. Recurring responsibilities surfacing on agenda (RecurringResponsibility API + UI)
-10. OrganizationSettings API + UI (meeting schedule config)
-11. Layout components: MobileBottomNav, Sidebar
-12. useMeeting hook
+## Build Priorities
+1. Wire FollowUpSection — show open assignments from prior meetings (backend exists)
+2. Wire HandbookSection — connect to handbook controller + AI question generation
+3. Wire DiscussionSection — ministry areas + topic backlog (build TopicBacklogItem API)
+4. Build NotesSection — auto-save every 30s + AI assignment extraction post-meeting
+5. Build PrepFocusSection — OpenAI prep assistant
+6. OrganizationSettings API + UI (meeting schedule config)
+7. Attachments API + UI
+8. Recurring responsibilities surfacing on agenda
+9. Layout components: MobileBottomNav, Sidebar
+10. useMeeting hook
+11. Unit tests for rotation logic (scaffolds in place)
+12. Position mapping UI — let admin map Member to OrgPosition
+13. Delete orphan drafts on org landing page (hide toggle)
+14. Apply Supabase migrations + seed OrgPositions for production orgs
 
 ## Working Patterns
 - Working directly in chat (not Claude Code) for tighter control
 - Commit after each meaningful chunk with descriptive messages
 - Backend pattern: Controller → Service (interface) → DbContext; DTOs for all API responses
+- Frontend pattern: hooks fetch data, components are dumb, api.ts for all calls
+- Circular reference fix: ReferenceHandler.IgnoreCycles set globally in Program.cs
+
+## Google Drive Notes
+- Each org needs GoogleDriveFolderId set (pgAdmin or future settings UI)
+- Each org needs admin to connect Google account once via "Connect Google Account" button
+- Service account approach was abandoned due to storage quota issues with personal Gmail
+- OAuth refresh tokens persist indefinitely until revoked
+
+## Position Seeding Notes
+- New orgs get positions seeded automatically via DefaultPositions.cs on creation
+- Existing orgs need manual SQL INSERT (see session notes)
+- ward_council and bishopric fully seeded
+- ward_youth_council seeded
+- family_council, presidency_meeting — no positions defined yet

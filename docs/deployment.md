@@ -12,11 +12,22 @@
 - App Service provisioned and running in Container mode ✅
 - Docker image in ACR ✅
 - App Service wired to ACR with admin credentials ✅
-- Env vars set (Clerk, OpenAI, Supabase) ✅
+- Env vars set (Clerk, OpenAI, Supabase, Google OAuth) ✅
 - Vercel deployed with correct VITE_API_URL and Clerk key ✅
 - DB migrations applied to Supabase ✅
 - GitHub Actions CD pipeline live (Azure + Vercel) ✅
 - Clerk on dev keys intentionally (no custom domain) ✅
+- Google OAuth2 per-org refresh token flow ✅
+
+## Azure Environment Variables
+- Clerk__SecretKey
+- Clerk__Domain  
+- OpenAI__ApiKey
+- ConnectionStrings__DefaultConnection (Supabase)
+- Google__OAuthClientId
+- Google__OAuthClientSecret
+- Google__OAuthRedirectUri
+- Frontend__BaseUrl
 
 ## Immediate Next Steps
 1. Switch App Service from Code to Container
