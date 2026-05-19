@@ -65,7 +65,10 @@ namespace CouncilAgendaApi.Services
             var folderId = org.GoogleDriveFolderId
                 ?? throw new InvalidOperationException("No Google Drive folder configured for this organization.");
 
-            var meetingDateLocal = meeting.MeetingDate.ToLocalTime();
+            var centralTime = TimeZoneInfo.FindSystemTimeZoneById("America/Chicago"); // TO DO make this a setting for the org
+            var meetingDateLocal = TimeZoneInfo.ConvertTimeFromUtc(
+                DateTime.SpecifyKind(meeting.MeetingDate, DateTimeKind.Utc), 
+                centralTime);
 			var title = $"{org.Name} — {meetingDateLocal:MMMM d, yyyy}";
             
             var requests = BuildDocRequests(org, meeting, assignments, priorAssignments, attendees, agendaItems, meetingDateLocal);
